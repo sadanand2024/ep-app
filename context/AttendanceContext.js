@@ -1,0 +1,148 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const AttendanceContext = createContext();
+
+export const useAttendance = () => {
+  const context = useContext(AttendanceContext);
+  if (!context) {
+    throw new Error('useAttendance must be used within an AttendanceProvider');
+  }
+  return context;
+};
+
+export const AttendanceProvider = ({ children }) => {
+  const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState('not-marked');
+  const [attendanceRecords, setAttendanceRecords] = useState([
+    {
+      date: '2024-01-15',
+      inTime: '2024-01-15T09:00:00',
+      outTime: '2024-01-15T17:30:00',
+      status: 'present'
+    },
+    {
+      date: '2024-01-14',
+      inTime: '2024-01-14T08:45:00',
+      outTime: '2024-01-14T17:00:00',
+      status: 'present'
+    },
+    {
+      date: '2024-01-13',
+      inTime: '2024-01-13T09:15:00',
+      outTime: '2024-01-13T17:45:00',
+      status: 'late'
+    },
+    {
+      date: '2024-01-12',
+      inTime: '2024-01-12T08:30:00',
+      outTime: '2024-01-12T17:15:00',
+      status: 'present'
+    },
+    {
+      date: '2024-01-11',
+      inTime: '2024-01-11T09:05:00',
+      outTime: '2024-01-11T17:30:00',
+      status: 'present'
+    }
+  ]);
+
+  // Load attendance data from storage on mount
+  useEffect(() => {
+    loadAttendanceData();
+  }, []);
+
+  const loadAttendanceData = async () => {
+    try {
+      const storedStatus = await AsyncStorage.getItem('currentAttendanceStatus');
+      const storedRecords = await AsyncStorage.getItem('attendanceRecords');
+      
+      if (storedStatus) {
+        setCurrentAttendanceStatus(storedStatus);
+      }
+      
+      if (storedRecords) {
+        setAttendanceRecords(JSON.parse(storedRecords));
+      }
+    } catch (error) {
+      console.error('Error loading attendance data:', error);
+    }
+  };
+
+  const saveAttendanceData = async (status, records) => {
+    try {
+      await AsyncStorage.setItem('currentAttendanceStatus', status);
+      await AsyncStorage.setItem('attendanceRecords', JSON.stringify(records));
+    } catch (error) {
+      console.error('Error saving attendance data:', error);
+    }
+  };
+
+  const markAttendance = async () => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    let newStatus;
+    let newRecords;
+
+    if (currentAttendanceStatus === 'not-marked' || currentAttendanceStatus === 'clocked-out') {
+      newStatus = 'clocked-in';
+      // Add to attendance records
+      const newRecord = {
+        date: new Date().toISOString().split('T')[0],
+        inTime: new Date().toISOString(),
+        outTime: null,
+        status: 'present'
+      };
+      newRecords = [newRecord, ...attendanceRecords];
+    } else {
+      newStatus = 'clocked-out';
+      // Update last record with out time
+      newRecords = attendanceRecords.map((record, index) => 
+        index === 0 ? { ...record, outTime: new Date().toISOString() } : record
+      );
+    }
+
+    setCurrentAttendanceStatus(newStatus);
+    setAttendanceRecords(newRecords);
+    
+    // Save to storage
+    await saveAttendanceData(newStatus, newRecords);
+  };
+
+  const getTodayRecord = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return attendanceRecords.find(record => record.date === today);
+  };
+
+  const getAttendanceStats = () => {
+    const totalDays = attendanceRecords.length;
+    const presentDays = attendanceRecords.filter(record => record.status === 'present').length;
+    const lateDays = attendanceRecords.filter(record => record.status === 'late').length;
+    const absentDays = totalDays - presentDays - lateDays;
+
+    return {
+      totalDays,
+      presentDays,
+      lateDays,
+      absentDays,
+      attendanceRate: totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0
+    };
+  };
+
+  const value = {
+    currentAttendanceStatus,
+    attendanceRecords,
+    markAttendance,
+    getTodayRecord,
+    getAttendanceStats,
+    // For manual updates if needed
+    setCurrentAttendanceStatus,
+    setAttendanceRecords
+  };
+
+  return (
+    <AttendanceContext.Provider value={value}>
+      {children}
+    </AttendanceContext.Provider>
+  );
+}; 
