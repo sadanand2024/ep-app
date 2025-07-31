@@ -8,12 +8,12 @@ import { AttendanceProvider } from "./context/AttendanceContext";
 import { DatePickerProvider } from "./context/DatePickerContext";
 import AppNavigator from "./navigation/AppNavigator";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import "./ReactotronConfig";
 import { DrawerProvider, DrawerContext } from "./context/DrawerContext";
 import { useContext, useEffect } from "react";
 import { CameraPermissionHandler } from "./utils/CameraPermissionHandler";
-
-const Stack = createNativeStackNavigator();
+if (__DEV__) {
+  require('./ReactotronConfig');
+}
 
 function AppContent() {
   const { isDarkMode } = useContext(DrawerContext);
@@ -36,7 +36,7 @@ function AppContent() {
 
   return (
     <PaperProvider theme={theme}>
-      <StatusBar 
+      <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={theme.colors.background}
         translucent={Platform.OS === 'android'}
@@ -56,9 +56,9 @@ export default function App() {
         <AuthProvider>
           <AttendanceProvider>
             <DatePickerProvider>
-            <DrawerProvider>
+              <DrawerProvider>
                 <AppContent />
-            </DrawerProvider>
+              </DrawerProvider>
             </DatePickerProvider>
           </AttendanceProvider>
         </AuthProvider>

@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -7,10 +7,10 @@ import {
   StatusBar
 } from "react-native";
 import { Text, useTheme } from "react-native-paper";
-import { 
-  Calendar, 
-  Plus, 
-  Clock, 
+import {
+  Calendar,
+  Plus,
+  Clock,
   UserCheck,
   UserX,
   Star
@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DrawerContext } from "../context/DrawerContext";
 import { getCommonStyles } from "../constants/commonStyles";
+import Factory from "../utils/Factory";
 
 // Import components
 import CalendarView from "../components/CalendarView";
@@ -27,6 +28,18 @@ export default function CalendarScreen({ navigation }) {
   const styles = getStyles(colors);
   const commonStyles = getCommonStyles(colors);
   const { isDarkMode } = useContext(DrawerContext);
+  const [holidayCalendar, setHolidayCalendar] = useState([]);
+
+  const fetchHolidayCalendar = async () => {
+    try {
+      const response = await Factory('get', '/payroll/holiday-calendar/?year=2025', {}, {}, {});
+      if (response.status_cd === 1) {
+        setHolidayCalendar(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+    }
+  };
 
   const getIconComponent = (iconName) => {
     const iconMap = {
@@ -46,7 +59,7 @@ export default function CalendarScreen({ navigation }) {
   // Mock data - replace with actual API calls
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
-  
+
   const [attendanceRecords, setAttendanceRecords] = useState([
     {
       date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15`,
@@ -129,6 +142,10 @@ export default function CalendarScreen({ navigation }) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    fetchHolidayCalendar();
+  }, []);
 
   return (
     <SafeAreaView

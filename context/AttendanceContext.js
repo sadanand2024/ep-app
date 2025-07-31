@@ -13,38 +13,7 @@ export const useAttendance = () => {
 
 export const AttendanceProvider = ({ children }) => {
   const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState('not-marked');
-  const [attendanceRecords, setAttendanceRecords] = useState([
-    {
-      date: '2024-01-15',
-      inTime: '2024-01-15T09:00:00',
-      outTime: '2024-01-15T17:30:00',
-      status: 'present'
-    },
-    {
-      date: '2024-01-14',
-      inTime: '2024-01-14T08:45:00',
-      outTime: '2024-01-14T17:00:00',
-      status: 'present'
-    },
-    {
-      date: '2024-01-13',
-      inTime: '2024-01-13T09:15:00',
-      outTime: '2024-01-13T17:45:00',
-      status: 'late'
-    },
-    {
-      date: '2024-01-12',
-      inTime: '2024-01-12T08:30:00',
-      outTime: '2024-01-12T17:15:00',
-      status: 'present'
-    },
-    {
-      date: '2024-01-11',
-      inTime: '2024-01-11T09:05:00',
-      outTime: '2024-01-11T17:30:00',
-      status: 'present'
-    }
-  ]);
+  const [attendanceRecords, setAttendanceRecords] = useState();
 
   // Load attendance data from storage on mount
   useEffect(() => {
@@ -55,11 +24,11 @@ export const AttendanceProvider = ({ children }) => {
     try {
       const storedStatus = await AsyncStorage.getItem('currentAttendanceStatus');
       const storedRecords = await AsyncStorage.getItem('attendanceRecords');
-      
+
       if (storedStatus) {
         setCurrentAttendanceStatus(storedStatus);
       }
-      
+
       if (storedRecords) {
         setAttendanceRecords(JSON.parse(storedRecords));
       }
@@ -71,6 +40,7 @@ export const AttendanceProvider = ({ children }) => {
   const saveAttendanceData = async (status, records) => {
     try {
       await AsyncStorage.setItem('currentAttendanceStatus', status);
+      console.tron.log('records', records);
       await AsyncStorage.setItem('attendanceRecords', JSON.stringify(records));
     } catch (error) {
       console.error('Error saving attendance data:', error);
@@ -80,7 +50,7 @@ export const AttendanceProvider = ({ children }) => {
   const markAttendance = async () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     let newStatus;
     let newRecords;
 
@@ -97,15 +67,16 @@ export const AttendanceProvider = ({ children }) => {
     } else {
       newStatus = 'clocked-out';
       // Update last record with out time
-      newRecords = attendanceRecords.map((record, index) => 
+      newRecords = attendanceRecords.map((record, index) =>
         index === 0 ? { ...record, outTime: new Date().toISOString() } : record
       );
     }
 
     setCurrentAttendanceStatus(newStatus);
     setAttendanceRecords(newRecords);
-    
+
     // Save to storage
+    console.tron.log('newRecords', newRecords);
     await saveAttendanceData(newStatus, newRecords);
   };
 

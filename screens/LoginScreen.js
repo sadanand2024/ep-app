@@ -53,7 +53,6 @@ export default function LoginScreen() {
       await saveUser(res?.data?.employee);
       login(res?.data?.employee);
     } catch (err) {
-      console.log("error", err?.response?.data?.error || err.message);
       setError(err?.response?.data?.error || "Login failed");
     } finally {
       setLoading(false);

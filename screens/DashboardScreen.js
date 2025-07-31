@@ -7,6 +7,7 @@ import {
   RefreshControl,
   StatusBar
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text, useTheme, Portal, Modal, Button } from "react-native-paper";
 import {
   TrendingUp,
@@ -33,8 +34,10 @@ export default function DashboardScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const commonStyles = getCommonStyles(colors);
+  const [todaysAttendance, setTodaysAttendance] = useState([]);
+  const [currentCheckInTime, setCurrentCheckInTime] = useState(null);
   const { toggleTheme, isDarkMode } = useContext(DrawerContext);
-  const { currentAttendanceStatus, markAttendance, getAttendanceStats } =
+  const { currentAttendanceStatus, markAttendance, getAttendanceStats, setCurrentAttendanceStatus } =
     useAttendance();
 
   const getIconComponent = (iconName) => {
@@ -94,79 +97,37 @@ export default function DashboardScreen({ navigation }) {
     ]
   });
 
-  // API Functions
-  const fetchDashboardData = async () => {
-    try {
-      console.log('Fetching dashboard data...');
 
-      // Fetch dashboard overview
-      const dashboardResponse = await Factory('get', '/dashboard/overview');
-      console.log('Dashboard Response:', dashboardResponse);
-
-      if (dashboardResponse.res.status_cd === 0) {
-        setDashboardData(dashboardResponse.res.data);
-      } else {
-        console.error('Dashboard API Error:', dashboardResponse.message);
-      }
-
-      // Fetch leave balances
-      const leaveBalanceResponse = await Factory('get', '/leaves/balance');
-      console.log('Leave Balance Response:', leaveBalanceResponse);
-
-      if (leaveBalanceResponse.res.status_cd === 0) {
-        setDashboardData(prev => ({
-          ...prev,
-          leaveBalances: leaveBalanceResponse.res.data.balances || []
-        }));
-      }
-
-      // Fetch upcoming events
-      const eventsResponse = await Factory('get', '/events/upcoming');
-      console.log('Events Response:', eventsResponse);
-
-      if (eventsResponse.res.status_cd === 0) {
-        setDashboardData(prev => ({
-          ...prev,
-          events: eventsResponse.res.data.events || []
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    }
-  };
-
-  const fetchHolidayCalendar = async () => {
-    try {
-      const response = await Factory('get', '/payroll/holiday-calendar/?year=2025', {}, {}, {});
-
-      console.log('Leave Requests Response:', response);
-
-      // if (response.res.status_cd === 0) {
-      //   setDashboardData(prev => ({
-      //     ...prev,
-      //     leaveRequests: response.res.data.requests || []
-      //   }));
-      // }
-    } catch (error) {
-      console.error('Error fetching leave requests:', error);
-    }
-  };
 
   // Handlers
   const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchHolidayCalendar();
-    setRefreshing(false);
   };
 
   const handleMarkAttendance = async () => {
     await markAttendance();
   };
 
-  // Load data on component mount
-  useEffect(() => {
-    fetchHolidayCalendar();
-  }, []);
+  const getTodaysAttendance = async () => {
+    const response = await Factory('get', '/payroll/today/', {}, {}, {});
+    if (response.status_cd === 1) {
+      let attendanceLogs = response.data.logs;
+      setTodaysAttendance(attendanceLogs);
+
+      if (attendanceLogs.length > 0) {
+        const latestLog = attendanceLogs[attendanceLogs.length - 1];
+
+        if (latestLog.check_out === null) {
+          console.tron.log('User is clocked in since:', latestLog.check_in);
+          setCurrentAttendanceStatus("clocked-in");
+          setCurrentCheckInTime(latestLog.check_in);
+        } else {
+          console.tron.log('User is clocked out at:', latestLog.check_out);
+          setCurrentAttendanceStatus("clocked-out");
+          setCurrentCheckInTime(null);
+        }
+      }
+    };
+  }
 
   const renderOverview = () => (
     <View style={[styles.section, styles.firstSection]}>
@@ -207,9 +168,14 @@ export default function DashboardScreen({ navigation }) {
       <AttendanceButton
         onMarkAttendance={handleMarkAttendance}
         currentStatus={currentAttendanceStatus}
+        checkInTimeFromAPI={currentCheckInTime}
       />
     </View>
   );
+
+  useEffect(() => {
+    getTodaysAttendance();
+  }, []);
 
   return (
     <SafeAreaView

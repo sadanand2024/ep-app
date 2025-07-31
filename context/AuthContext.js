@@ -14,7 +14,6 @@ export const AuthProvider = ({ children }) => {
       email: userData.email || "user@tarafirst.com",
       employeeId: userData.associate_id
     });
-    console.log(userData)
   };
 
   const logout = () => {
@@ -27,7 +26,6 @@ export const AuthProvider = ({ children }) => {
     const checkLogin = async () => {
       const token = await getToken();
       const user = await getUser();
-      console.log(user)
       if (token) {
         login(user);
       } else {

@@ -7,9 +7,9 @@ import {
   StatusBar
 } from "react-native";
 import { Text, useTheme, Portal, Modal, Button } from "react-native-paper";
-import { 
-  Clock, 
-  Calendar, 
+import {
+  Clock,
+  Calendar,
   UserCheck,
   UserX,
   AlertCircle,

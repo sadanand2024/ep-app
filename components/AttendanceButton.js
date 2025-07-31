@@ -20,17 +20,19 @@ import { getStatusConfig as getThemeStatusConfig } from "../constants/theme";
 import { DrawerContext } from "../context/DrawerContext";
 import { AuthContext } from "../context/AuthContext";
 
-import { CameraPermissionHandler } from "../utils/CameraPermissionHandler";
+// import { CameraPermissionHandler } from "../utils/CameraPermissionHandler";
 import LocationService from "../utils/LocationService";
-import AttendanceCamera from "./AttendanceCamera";
+// import AttendanceCamera from "./AttendanceCamera";
 import { attendanceAPI } from "../utils/api";
+import Factory from "../utils/Factory";
 
 
 const { width } = Dimensions.get("window");
 
 export default function AttendanceButton({
   onMarkAttendance,
-  currentStatus = "not-marked"
+  currentStatus = "not-marked",
+  checkInTimeFromAPI = null
 }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -41,7 +43,7 @@ export default function AttendanceButton({
   const [scaleAnim] = useState(new Animated.Value(1));
   const [sessionDuration, setSessionDuration] = useState("00:00:00");
   const [checkInTime, setCheckInTime] = useState(null);
-  const [showCamera, setShowCamera] = useState(false);
+  // const [showCamera, setShowCamera] = useState(false);
   const [locationStatus, setLocationStatus] = useState(null);
 
 
@@ -50,6 +52,17 @@ export default function AttendanceButton({
   useEffect(() => {
     loadCheckInTime();
   }, []);
+
+  // Handle check-in time from API
+  useEffect(() => {
+    if (checkInTimeFromAPI && currentStatus === "clocked-in") {
+      setCheckInTime(new Date(checkInTimeFromAPI));
+      saveCheckInTime(new Date(checkInTimeFromAPI));
+    } else if (currentStatus === "clocked-out") {
+      setCheckInTime(null);
+      clearCheckInTime();
+    }
+  }, [checkInTimeFromAPI, currentStatus]);
 
   // Timer effect for active sessions
   useEffect(() => {
@@ -197,6 +210,79 @@ export default function AttendanceButton({
 
   const config = getStatusConfig();
 
+  // Function to get area name with multiple fallback options
+  const getAreaNameWithFallback = async (latitude, longitude) => {
+    const services = [
+      // Service 1: OpenStreetMap Nominatim (with proper headers)
+      async () => {
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=16`,
+            {
+              headers: {
+                'User-Agent': 'TaraFlow/1.0',
+                'Accept': 'application/json'
+              }
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.display_name || null;
+        } catch (error) {
+          throw error;
+        }
+      },
+
+      // Service 2: Alternative geocoding service (BigDataCloud)
+      async () => {
+        try {
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.locality || data.city || data.countryName || null;
+        } catch (error) {
+          throw error;
+        }
+      },
+
+      // Service 3: Simple coordinate-based area name
+      async () => {
+        // Fallback: Create a simple area name from coordinates
+        const lat = parseFloat(latitude).toFixed(4);
+        const lon = parseFloat(longitude).toFixed(4);
+        return `Location (${lat}, ${lon})`;
+      }
+    ];
+
+    // Try each service in order
+    for (let i = 0; i < services.length; i++) {
+      try {
+        const result = await services[i]();
+        if (result) {
+          return result;
+        }
+      } catch (error) {
+        if (i === services.length - 1) {
+          // Last service failed, return null
+          return null;
+        }
+        // Continue to next service
+      }
+    }
+
+    return null;
+  };
+
   const handlePress = async () => {
     // Scale animation on press
     Animated.sequence([
@@ -222,25 +308,86 @@ export default function AttendanceButton({
   };
 
   const startVerificationProcess = async () => {
-    console.log('startVerificationProcess called');
     setIsLoading(true);
 
     try {
-      // TEMPORARILY BYPASS LOCATION CHECK FOR TESTING
-      console.log('⚠️ Bypassing location check for camera testing');
-      
-      // Step 3: Open camera for photo capture directly
-      console.log('Opening camera directly');
-      setShowCamera(true);
-      setIsLoading(false);
+      // Request location permission
+      const hasLocationPermission = await LocationService.checkPermissions();
+      if (!hasLocationPermission) {
+        const granted = await requestLocationPermission();
+        if (!granted) {
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Get current location
+      let locationData = await LocationService.getCurrentLocation();
+
+      // Get area name from lon and lat with fallback options
+      let areaName = null;
+      if (locationData && locationData.latitude && locationData.longitude) {
+        try {
+          // Try multiple geocoding services with fallback
+          areaName = await getAreaNameWithFallback(locationData.latitude, locationData.longitude);
+          locationData.areaName = areaName;
+
+          if (areaName) {
+          } else {
+            console.tron.log('No area name available, using coordinates only');
+          }
+        } catch (err) {
+          console.warn('Failed to fetch area name:', err);
+          locationData.areaName = null;
+          // Don't fail the attendance process if area name fetch fails
+        }
+      }
+      console.tron.log('Area name fetched:', locationData);
+
+      // Prepare attendance data with location only
+      const attendanceData = {
+        userId: user?.id || user?.employeeId,
+        timestamp: new Date().toISOString(),
+        location: locationData,
+        type: 'clock-in'
+      };
+
+      // Save verification data locally
+      await AsyncStorage.setItem('lastVerificationData', JSON.stringify(attendanceData));
+
+      // Send to backend API
+
+      try {
+        const response = await Factory('post', '/payroll/manual-checkin/', {
+          location: locationData.areaName,
+          device_info: 'mobile',
+        }, {}, {});
+        if (response.status_cd === 1) {
+          const now = new Date();
+          await saveCheckInTime(now);
+          setCheckInTime(now);
+          setSessionDuration("00:00:00");
+          await onMarkAttendance();
+          Alert.alert(
+            '✅ Attendance Marked Successfully!',
+            `Location verified and data sent to server.\n\nWelcome to work!`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('❌ Error', 'Failed to mark attendance: ' + response.error, [{ text: 'OK' }]);
+        }
+      } catch (apiError) {
+        console.error('API Error:', apiError);
+        // Continue with local attendance marking even if API fails
+        console.warn('API call failed, but continuing with local attendance marking');
+      }
+
+
 
     } catch (error) {
-      console.error('Error opening camera:', error);
-      Alert.alert(
-        'Error',
-        'Unable to open camera: ' + error.message,
-        [{ text: 'OK' }]
-      );
+      console.error('Error completing attendance:', error);
+      Alert.alert('❌ Error', 'Failed to mark attendance: ' + error.message, [{ text: 'OK' }]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -277,56 +424,56 @@ export default function AttendanceButton({
     });
   };
 
-  const handleCameraCapture = async (attendanceData) => {
-    console.log('handleCameraCapture called with data:', attendanceData);
-    
-    // Close camera
-    setShowCamera(false);
-    setIsLoading(true);
+  // const handleCameraCapture = async (attendanceData) => {
+  //   console.log('handleCameraCapture called with data:', attendanceData);
 
-    try {
-      // Save verification data locally
-      console.log('Saving verification data locally...');
-      await AsyncStorage.setItem('lastVerificationData', JSON.stringify(attendanceData));
+  //   // Close camera
+  //   setShowCamera(false);
+  //   setIsLoading(true);
 
-      // Send to backend API
-      console.log('Sending to backend API...');
-      const apiResult = await attendanceAPI.punchIn(attendanceData);
-      console.log('API result:', apiResult);
-      
-      if (!apiResult.success) {
-        throw new Error(apiResult.error || 'Failed to send attendance data to server');
-      }
+  //   try {
+  //     // Save verification data locally
+  //     console.log('Saving verification data locally...');
+  //     await AsyncStorage.setItem('lastVerificationData', JSON.stringify(attendanceData));
 
-      // Complete attendance marking locally
-      console.log('Completing attendance marking locally...');
-      const now = new Date();
-      await saveCheckInTime(now);
-      setCheckInTime(now);
-      setSessionDuration("00:00:00");
+  //     // Send to backend API
+  //     console.log('Sending to backend API...');
+  //     const apiResult = await attendanceAPI.punchIn(attendanceData);
+  //     console.log('API result:', apiResult);
 
-      await onMarkAttendance();
+  //     if (!apiResult.success) {
+  //         throw new Error(apiResult.error || 'Failed to send attendance data to server');
+  //     }
 
-      // Show success popup
-      Alert.alert(
-        '✅ Attendance Marked Successfully!',
-        `Photo captured and location verified.\nData sent to server.\n\nWelcome to work!`,
-        [{ text: 'OK' }]
-      );
+  //     // Complete attendance marking locally
+  //     console.log('Completing attendance marking locally...');
+  //     const now = new Date();
+  //     await saveCheckInTime(now);
+  //     setCheckInTime(now);
+  //     setSessionDuration("00:00:00");
 
-    } catch (error) {
-      console.error('Error completing attendance:', error);
-      Alert.alert('❌ Error', 'Failed to mark attendance: ' + error.message, [{ text: 'OK' }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     await onMarkAttendance();
 
-  const handleCameraError = (error) => {
-    setShowCamera(false);
-    setIsLoading(false);
-    Alert.alert('❌ Camera Error', error, [{ text: 'OK' }]);
-  };
+  //     // Show success popup
+  //     Alert.alert(
+  //       '✅ Attendance Marked Successfully!',
+  //       `Photo captured and location verified.\nData sent to server.\n\nWelcome to work!`,
+  //       [{ text: 'OK' }]
+  //     );
+
+  //   } catch (error) {
+  //     console.error('Error completing attendance:', error);
+  //     Alert.alert('❌ Error', 'Failed to mark attendance: ' + error.message, [{ text: 'OK' }]);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  // const handleCameraError = (error) => {
+  //   setShowCamera(false);
+  //   setIsLoading(false);
+  //   Alert.alert('❌ Camera Error', error, [{ text: 'OK' }]);
+  // };
 
   const handleClockOut = async () => {
     setIsLoading(true);
@@ -351,24 +498,24 @@ export default function AttendanceButton({
       };
 
       // Send to backend API
-      const apiResult = await attendanceAPI.punchOut(clockOutData);
-      
-      if (!apiResult.success) {
-        console.warn('Failed to send clock out data to server:', apiResult.error);
+      const apiResult = await Factory('post', '/payroll/manual-checkout/', {
+        location: locationData.areaName,
+        device_info: 'mobile',
+      }, {}, {});
+      if (apiResult.status_cd === 1) {
+        // Complete clock out locally
+        await clearCheckInTime();
+        setCheckInTime(null);
+        setSessionDuration("00:00:00");
+        await onMarkAttendance();
+        Alert.alert(
+          '✅ Clock Out Successful!',
+          'Have a great day!',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('❌ Error', 'Failed to clock out: ' + apiResult.error, [{ text: 'OK' }]);
       }
-
-      // Complete clock out locally
-      await clearCheckInTime();
-      setCheckInTime(null);
-      setSessionDuration("00:00:00");
-      await onMarkAttendance();
-
-      Alert.alert(
-        '✅ Clock Out Successful!',
-        'Have a great day!',
-        [{ text: 'OK' }]
-      );
-
     } catch (error) {
       console.error('Error during clock out:', error);
       Alert.alert('❌ Error', 'Failed to clock out: ' + error.message, [{ text: 'OK' }]);
@@ -487,8 +634,8 @@ export default function AttendanceButton({
 
 
 
-      {/* Attendance Camera Modal */}
-      <AttendanceCamera
+      {/* Attendance Camera Modal - Commented out for now */}
+      {/* <AttendanceCamera
         visible={showCamera}
         onClose={() => {
           setShowCamera(false);
@@ -496,7 +643,7 @@ export default function AttendanceButton({
         }}
         onCapture={handleCameraCapture}
         onError={handleCameraError}
-      />
+      /> */}
 
     </View>
   );
