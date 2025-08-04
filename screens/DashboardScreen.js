@@ -37,7 +37,7 @@ export default function DashboardScreen({ navigation }) {
   const [todaysAttendance, setTodaysAttendance] = useState([]);
   const [currentCheckInTime, setCurrentCheckInTime] = useState(null);
   const { toggleTheme, isDarkMode } = useContext(DrawerContext);
-  const { currentAttendanceStatus, markAttendance, getAttendanceStats, setCurrentAttendanceStatus } =
+  const { currentAttendanceStatus, getAttendanceStats, setCurrentAttendanceStatus } =
     useAttendance();
 
   const getIconComponent = (iconName) => {
@@ -104,7 +104,13 @@ export default function DashboardScreen({ navigation }) {
   };
 
   const handleMarkAttendance = async () => {
-    await markAttendance();
+    // Refresh attendance data from API after successful attendance marking
+    await getTodaysAttendance();
+  };
+
+  const handleClockOut = async () => {
+    setCurrentAttendanceStatus("clocked-out");
+    setCurrentCheckInTime(null);
   };
 
   const getTodaysAttendance = async () => {
@@ -112,19 +118,16 @@ export default function DashboardScreen({ navigation }) {
     if (response.status_cd === 1) {
       let attendanceLogs = response.data.logs;
       setTodaysAttendance(attendanceLogs);
-
-      if (attendanceLogs.length > 0) {
+      if (attendanceLogs && attendanceLogs.length > 0) {
         const latestLog = attendanceLogs[attendanceLogs.length - 1];
-
         if (latestLog.check_out === null) {
-          console.tron.log('User is clocked in since:', latestLog.check_in);
           setCurrentAttendanceStatus("clocked-in");
           setCurrentCheckInTime(latestLog.check_in);
         } else {
-          console.tron.log('User is clocked out at:', latestLog.check_out);
-          setCurrentAttendanceStatus("clocked-out");
-          setCurrentCheckInTime(null);
+          handleClockOut();
         }
+      } else {
+        handleClockOut();
       }
     };
   }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AttendanceContext = createContext();
@@ -13,7 +13,7 @@ export const useAttendance = () => {
 
 export const AttendanceProvider = ({ children }) => {
   const [currentAttendanceStatus, setCurrentAttendanceStatus] = useState('not-marked');
-  const [attendanceRecords, setAttendanceRecords] = useState();
+  const [attendanceRecords, setAttendanceRecords] = useState([]); // Initialize as empty array
 
   // Load attendance data from storage on mount
   useEffect(() => {
@@ -30,7 +30,8 @@ export const AttendanceProvider = ({ children }) => {
       }
 
       if (storedRecords) {
-        setAttendanceRecords(JSON.parse(storedRecords));
+        const parsedRecords = JSON.parse(storedRecords);
+        setAttendanceRecords(parsedRecords || []); // Ensure it's always an array
       }
     } catch (error) {
       console.error('Error loading attendance data:', error);
@@ -63,11 +64,11 @@ export const AttendanceProvider = ({ children }) => {
         outTime: null,
         status: 'present'
       };
-      newRecords = [newRecord, ...attendanceRecords];
+      newRecords = [newRecord, ...(attendanceRecords || [])];
     } else {
       newStatus = 'clocked-out';
       // Update last record with out time
-      newRecords = attendanceRecords.map((record, index) =>
+      newRecords = (attendanceRecords || []).map((record, index) =>
         index === 0 ? { ...record, outTime: new Date().toISOString() } : record
       );
     }
@@ -82,13 +83,14 @@ export const AttendanceProvider = ({ children }) => {
 
   const getTodayRecord = () => {
     const today = new Date().toISOString().split('T')[0];
-    return attendanceRecords.find(record => record.date === today);
+    return (attendanceRecords || []).find(record => record.date === today);
   };
 
   const getAttendanceStats = () => {
-    const totalDays = attendanceRecords.length;
-    const presentDays = attendanceRecords.filter(record => record.status === 'present').length;
-    const lateDays = attendanceRecords.filter(record => record.status === 'late').length;
+    const records = attendanceRecords || [];
+    const totalDays = records.length;
+    const presentDays = records.filter(record => record.status === 'present').length;
+    const lateDays = records.filter(record => record.status === 'late').length;
     const absentDays = totalDays - presentDays - lateDays;
 
     return {
@@ -100,16 +102,17 @@ export const AttendanceProvider = ({ children }) => {
     };
   };
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     currentAttendanceStatus,
-    attendanceRecords,
+    attendanceRecords: attendanceRecords || [], // Ensure it's always an array
     markAttendance,
     getTodayRecord,
     getAttendanceStats,
     // For manual updates if needed
     setCurrentAttendanceStatus,
     setAttendanceRecords
-  };
+  }), [currentAttendanceStatus, attendanceRecords]);
 
   return (
     <AttendanceContext.Provider value={value}>

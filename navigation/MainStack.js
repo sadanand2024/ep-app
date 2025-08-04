@@ -9,6 +9,7 @@ import AttendanceScreen from "../screens/AttendanceScreen";
 import LeaveScreen from "../screens/LeaveScreen";
 import CalendarScreen from "../screens/CalendarScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import TaxTDSScreen from "../screens/taxtds";
 import { DrawerContext } from "../context/DrawerContext";
 import CustomDrawer from "../components/CustomDrawer";
 import {
@@ -32,7 +33,7 @@ export default function MainStack() {
       drawerWidth={350}
       drawerPosition="right"
       renderNavigationView={() => <CustomDrawer />}
-      edgeWidth={150} // swipe zone
+      edgeWidth={150}
     >
       <Tab.Navigator
         screenOptions={({ route }) => ({
@@ -53,15 +54,20 @@ export default function MainStack() {
             height: 60 + insets.bottom,
             paddingBottom: 12 + insets.bottom,
             paddingTop: 8,
-            paddingHorizontal: 8,
+            paddingHorizontal: 0,
             backgroundColor: colors.surface,
             borderTopColor: colors.outline,
             borderTopWidth: 1
           },
           tabBarLabelStyle: {
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: "500",
-            color: colors.onSurface
+            color: colors.onSurface,
+            marginTop: 2
+          },
+          tabBarItemStyle: {
+            paddingVertical: 4,
+            paddingHorizontal: 8
           }
         })}
       >
@@ -76,7 +82,7 @@ export default function MainStack() {
           name="Attendance"
           component={AttendanceScreen}
           options={{
-            tabBarLabel: "Attendance"
+            tabBarLabel: "Attend"
           }}
         />
         <Tab.Screen
@@ -98,6 +104,13 @@ export default function MainStack() {
           component={ProfileScreen}
           options={{
             tabBarLabel: "Profile"
+          }}
+        />
+        <Tab.Screen
+          name="Tax TDS"
+          component={TaxTDSScreen}
+          options={{
+            tabBarButton: () => null, // Hide from bottom tabs
           }}
         />
       </Tab.Navigator>

@@ -61,7 +61,7 @@ export default function ProfileHeader({ onToggleTheme, isDarkMode = false }) {
             {user?.name || "User"}
           </Text>
           <Text variant="bodySmall" style={styles.userRole}>
-            Software Engineer
+            {user?.designation || "Unknown"}
           </Text>
         </View>
       </View>

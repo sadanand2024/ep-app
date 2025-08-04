@@ -294,14 +294,16 @@ export default function LeaveScreen({ navigation }) {
 
             <ScrollView
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.modalContent}
+              contentContainerStyle={{ flexGrow: 0 }}
               style={styles.modalScrollView}
               keyboardShouldPersistTaps="handled"
             >
-              <LeaveRequestForm
-                onSubmit={handleLeaveSubmit}
-                leaveTypes={leaveTypes}
-              />
+              <View style={styles.modalContent}>
+                <LeaveRequestForm
+                  onSubmit={handleLeaveSubmit}
+                  leaveTypes={leaveTypes}
+                />
+              </View>
             </ScrollView>
           </View>
         </Modal>
@@ -316,9 +318,10 @@ const getStyles = (colors) =>
       flex: 1,
       backgroundColor: colors.container
     },
-
     content: {
-      flex: 1
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      height: '80%',
     },
     contentContainer: {
       padding: 16,
@@ -391,14 +394,13 @@ const getStyles = (colors) =>
       paddingVertical: 2
     },
     modal: {
-      flex: 1,
       backgroundColor: colors.surface,
       margin: 20,
       borderRadius: 12,
-      alignSelf: "center"
+      alignSelf: "center",
+      maxHeight: '90%',
     },
     modalContainer: {
-      flex: 1,
       width: "100%"
     },
     modalHeader: {
@@ -415,12 +417,11 @@ const getStyles = (colors) =>
       fontWeight: "600"
     },
     modalScrollView: {
-      flex: 1,
+      maxHeight: 700,
       width: "100%"
     },
     modalContent: {
       padding: 20,
-      paddingBottom: 20,
-      width: "100%"
+      paddingBottom: 20
     }
   });

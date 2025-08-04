@@ -30,7 +30,7 @@ export const AuthLogout = async () => {
     await AsyncStorage.removeItem("authToken");
     await AsyncStorage.removeItem("user");
     await AsyncStorage.removeItem("attendanceRecords");
-
+    await AsyncStorage.removeItem("userData");
   } catch (e) {
     console.error("Logout failed", e);
   }

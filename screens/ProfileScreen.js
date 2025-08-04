@@ -80,7 +80,7 @@ export default function ProfileScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  
+
 
 
 
@@ -89,14 +89,14 @@ export default function ProfileScreen({ navigation }) {
   const userProfile = {
     name: user?.name || "User",
     email: user?.email || "user@company.com",
-    phone: "+1 (555) 123-4567",
-    employeeId: user?.employeeId || "EMP001",
-    designation: "Software Engineer",
-    department: "Engineering",
+    phone: user?.mobileNumber || "Phone",
+    employeeId: user?.employeeId || "Employee ID",
+    designation: user?.designation || "Designation",
+    department: user?.department || "Department",
     team: "Frontend Development",
-    joinDate: "2023-01-15",
+    joinDate: user?.joinDate || "Unknown",
     manager: "Sarah Johnson",
-    location: "New York Office",
+    location: user?.location || "Location",
     avatar: user?.name ? user.name.substring(0, 2).toUpperCase() : "U"
   };
 

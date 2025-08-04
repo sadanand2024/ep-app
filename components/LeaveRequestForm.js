@@ -394,42 +394,24 @@ const getStyles = (colors) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      width: "100%",
-      // Platform-specific alignment
-      ...(Platform.OS === "android"
-        ? {
-            paddingHorizontal: 16
-          }
-        : {})
+      // Remove width: "100%" and platform-specific padding
     },
     keyboardAvoidingView: {
       flex: 1,
     },
     content: {
-      // flex: 1, // Removed to fix iPhone infinite scroll
-      width: "100%",
-      // Platform-specific alignment
-      // Removed alignItems from here
+      // Remove width: "100%" and platform-specific alignment
     },
     scrollContent: {
-      flexGrow: 1,
+      flexGrow: 0,
       paddingBottom: 20, // Extra padding for keyboard
-      // Platform-specific alignment
-      ...(Platform.OS === "android"
-        ? {
-            alignItems: "center"
-          }
-        : {})
+      // Remove platform-specific alignment
     },
     section: {
       marginBottom: 20,
-      width: "100%", // Ensure full width
-      // Platform-specific alignment
-      ...(Platform.OS === "android"
-        ? {
-            maxWidth: Dimensions.get("window").width - 32
-          }
-        : {})
+      width: '100%',
+      flex: 1,
+      // Remove width: "100%" and platform-specific maxWidth
     },
     testButton: {
       marginBottom: 10
@@ -475,31 +457,27 @@ const getStyles = (colors) =>
     dateContainer: {
       flexDirection: "row",
       gap: 12,
-      width: "100%", // Ensure full width
-      // Platform-specific alignment
-      ...(Platform.OS === "android"
-        ? {
-            justifyContent: "space-between"
-          }
-        : {})
+      // Remove width: "100%" and platform-specific justifyContent
     },
     dateInput: {
       flex: 1,
       minWidth: 0 // Allow flex to work properly
     },
     dateTouchable: {
-      width: "100%"
+      // Remove width: "100%"
     },
     dateInputContainer: {
-      width: "100%"
+      // Remove width: "100%"
     },
     dateTextInput: {
-      width: "100%"
+      // Remove width: "100%"
     },
     reasonInput: {
-      width: "100%",
-      minWidth: "100%",
-      // Platform-specific alignment
+      // Remove width: "100%" and minWidth, keep platform-specific textAlignVertical
+      width: '100%',
+      flex: 1,
+      minWidth: '100%',
+      maxWidth: '100%',
       ...(Platform.OS === "android"
         ? {
             textAlignVertical: "top"
@@ -508,8 +486,11 @@ const getStyles = (colors) =>
     },
     reasonInputContent: {
       minHeight: 80,
-      width: "100%",
-      // Platform-specific alignment
+      width: '100%',
+      flex: 1,
+      minWidth: '100%',
+      maxWidth: '100%',
+      // Remove width: "100%", keep platform-specific paddingVertical
       ...(Platform.OS === "android"
         ? {
             paddingVertical: 8
@@ -517,9 +498,11 @@ const getStyles = (colors) =>
         : {})
     },
     descriptionInput: {
-      width: "100%",
-      minWidth: "100%",
-      // Platform-specific alignment
+      // Remove width: "100%" and minWidth, keep platform-specific textAlignVertical
+      width: '100%',
+      flex: 1,
+      minWidth: '100%',
+      maxWidth: '100%',
       ...(Platform.OS === "android"
         ? {
             textAlignVertical: "top"
@@ -528,8 +511,11 @@ const getStyles = (colors) =>
     },
     descriptionInputContent: {
       minHeight: 120,
-      width: "100%",
-      // Platform-specific alignment
+      width: '100%',
+      flex: 1,
+      minWidth: '100%',
+      maxWidth: '100%',
+      // Remove width: "100%", keep platform-specific paddingVertical
       ...(Platform.OS === "android"
         ? {
             paddingVertical: 8
@@ -538,18 +524,9 @@ const getStyles = (colors) =>
     },
     submitContainer: {
       marginTop: 20,
-      marginBottom: 10,
-      width: "100%" // Ensure full width
     },
     submitButton: {
       borderRadius: 8,
-      width: "100%", // Ensure full width
-      // Platform-specific alignment
-      ...(Platform.OS === "android"
-        ? {
-            alignSelf: "stretch"
-          }
-        : {})
     },
     submitButtonContent: {
       paddingVertical: 8

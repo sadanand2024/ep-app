@@ -31,8 +31,8 @@ const Factory = async (api, URL, payload, headers = {}, config = {}) => {
 
     const handleLogout = async () => {
         try {
+            // Clear auth token from AsyncStorage
             await AsyncStorage.removeItem('authToken');
-            await AsyncStorage.removeItem('userData');
             console.log('User logged out due to invalid token');
         } catch (error) {
             console.error('Error during logout:', error);

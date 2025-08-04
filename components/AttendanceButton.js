@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { View, StyleSheet, Animated, Dimensions, Alert } from "react-native";
 import { Button, Text, useTheme, Surface, Portal, Modal } from "react-native-paper";
 import {
@@ -13,7 +13,6 @@ import {
   AlertCircle
 } from "lucide-react-native";
 import { LinearGradient } from 'react-native-linear-gradient';
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 import { getStatusConfig as getThemeStatusConfig } from "../constants/theme";
@@ -45,22 +44,22 @@ export default function AttendanceButton({
   const [checkInTime, setCheckInTime] = useState(null);
   // const [showCamera, setShowCamera] = useState(false);
   const [locationStatus, setLocationStatus] = useState(null);
+  
+  // Use ref to track previous checkInTimeFromAPI to prevent unnecessary updates
+  const prevCheckInTimeFromAPI = useRef(null);
 
-
-
-  // Load check-in time from storage on component mount
-  useEffect(() => {
-    loadCheckInTime();
-  }, []);
 
   // Handle check-in time from API
   useEffect(() => {
-    if (checkInTimeFromAPI && currentStatus === "clocked-in") {
-      setCheckInTime(new Date(checkInTimeFromAPI));
-      saveCheckInTime(new Date(checkInTimeFromAPI));
-    } else if (currentStatus === "clocked-out") {
-      setCheckInTime(null);
-      clearCheckInTime();
+    // Only update if the checkInTimeFromAPI has actually changed
+    if (checkInTimeFromAPI !== prevCheckInTimeFromAPI.current) {
+      prevCheckInTimeFromAPI.current = checkInTimeFromAPI;
+      
+      if (checkInTimeFromAPI && currentStatus === "clocked-in") {
+        setCheckInTime(new Date(checkInTimeFromAPI));
+      } else if (currentStatus === "clocked-out") {
+        setCheckInTime(null);
+      }
     }
   }, [checkInTimeFromAPI, currentStatus]);
 
@@ -99,32 +98,7 @@ export default function AttendanceButton({
     }
   }, [currentStatus]);
 
-  const loadCheckInTime = async () => {
-    try {
-      const storedTime = await AsyncStorage.getItem("checkInTime");
-      if (storedTime) {
-        setCheckInTime(new Date(storedTime));
-      }
-    } catch (error) {
-      console.error("Error loading check-in time:", error);
-    }
-  };
-
-  const saveCheckInTime = async (time) => {
-    try {
-      await AsyncStorage.setItem("checkInTime", time.toISOString());
-    } catch (error) {
-      console.error("Error saving check-in time:", error);
-    }
-  };
-
-  const clearCheckInTime = async () => {
-    try {
-      await AsyncStorage.removeItem("checkInTime");
-    } catch (error) {
-      console.error("Error clearing check-in time:", error);
-    }
-  };
+  // Removed local storage functions - using only API data
 
   const updateTimer = () => {
     if (checkInTime) {
@@ -337,12 +311,10 @@ export default function AttendanceButton({
             console.tron.log('No area name available, using coordinates only');
           }
         } catch (err) {
-          console.warn('Failed to fetch area name:', err);
           locationData.areaName = null;
           // Don't fail the attendance process if area name fetch fails
         }
       }
-      console.tron.log('Area name fetched:', locationData);
 
       // Prepare attendance data with location only
       const attendanceData = {
@@ -352,21 +324,15 @@ export default function AttendanceButton({
         type: 'clock-in'
       };
 
-      // Save verification data locally
-      await AsyncStorage.setItem('lastVerificationData', JSON.stringify(attendanceData));
-
       // Send to backend API
-
       try {
         const response = await Factory('post', '/payroll/manual-checkin/', {
           location: locationData.areaName,
           device_info: 'mobile',
         }, {}, {});
+        
         if (response.status_cd === 1) {
-          const now = new Date();
-          await saveCheckInTime(now);
-          setCheckInTime(now);
-          setSessionDuration("00:00:00");
+          // Call the parent's onMarkAttendance to refresh the status
           await onMarkAttendance();
           Alert.alert(
             '✅ Attendance Marked Successfully!',
@@ -377,15 +343,12 @@ export default function AttendanceButton({
           Alert.alert('❌ Error', 'Failed to mark attendance: ' + response.error, [{ text: 'OK' }]);
         }
       } catch (apiError) {
-        console.error('API Error:', apiError);
-        // Continue with local attendance marking even if API fails
-        console.warn('API call failed, but continuing with local attendance marking');
+        Alert.alert('❌ Error', 'Failed to connect to server. Please try again.', [{ text: 'OK' }]);
       }
 
 
 
     } catch (error) {
-      console.error('Error completing attendance:', error);
       Alert.alert('❌ Error', 'Failed to mark attendance: ' + error.message, [{ text: 'OK' }]);
     } finally {
       setIsLoading(false);
@@ -502,11 +465,9 @@ export default function AttendanceButton({
         location: locationData.areaName,
         device_info: 'mobile',
       }, {}, {});
+      
       if (apiResult.status_cd === 1) {
-        // Complete clock out locally
-        await clearCheckInTime();
-        setCheckInTime(null);
-        setSessionDuration("00:00:00");
+        // Call the parent's onMarkAttendance to refresh the status
         await onMarkAttendance();
         Alert.alert(
           '✅ Clock Out Successful!',
@@ -517,7 +478,6 @@ export default function AttendanceButton({
         Alert.alert('❌ Error', 'Failed to clock out: ' + apiResult.error, [{ text: 'OK' }]);
       }
     } catch (error) {
-      console.error('Error during clock out:', error);
       Alert.alert('❌ Error', 'Failed to clock out: ' + error.message, [{ text: 'OK' }]);
     } finally {
       setIsLoading(false);
@@ -740,7 +700,7 @@ const getStyles = (colors) =>
       elevation: 0
     },
     buttonContent: {
-      paddingVertical: 10,
+      paddingVertical: 4,
       minWidth: 120
     },
     buttonLabel: {

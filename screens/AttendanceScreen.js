@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -23,14 +23,20 @@ import { getCommonStyles } from "../constants/commonStyles";
 import AttendanceButton from "../components/AttendanceButton";
 import AttendanceHistory from "../components/AttendanceHistory";
 import { useAttendance } from "../context/AttendanceContext";
+import Factory from "../utils/Factory";
 
 export default function AttendanceScreen({ navigation }) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const commonStyles = getCommonStyles(colors);
   const { isDarkMode } = useContext(DrawerContext);
-  const { currentAttendanceStatus, attendanceRecords, markAttendance } =
-    useAttendance();
+  const { currentAttendanceStatus } = useAttendance();
+
+  // State management
+  const [refreshing, setRefreshing] = useState(false);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentCheckInTime, setCurrentCheckInTime] = useState(null);
 
   const getIconComponent = (iconName) => {
     const iconMap = {
@@ -45,19 +51,74 @@ export default function AttendanceScreen({ navigation }) {
     return iconMap[iconName] || Clock;
   };
 
-  // State management
-  const [refreshing, setRefreshing] = useState(false);
+  // Fetch attendance records from API
+  const fetchAttendanceRecords = async () => {
+    try {
+      setLoading(true);
+      const currentDate = new Date();
+      const month = currentDate.getMonth() + 1; // 1-12
+      const year = currentDate.getFullYear();
+
+      const response = await Factory('get', `/payroll/monthly-report/?month=${month}&year=${year}`, {}, {}, {});
+      console.tron.log(response);
+      if (response.status_cd === 1 && response.data && response.data.report) {
+        setAttendanceRecords(response.data.report);
+      } else {
+        setAttendanceRecords([]);
+      }
+    } catch (error) {
+      console.error('Error fetching attendance records:', error);
+      // Set empty array on error
+      setAttendanceRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get today's attendance data
+  const getTodaysAttendance = async () => {
+    try {
+      const response = await Factory('get', '/payroll/today/', {}, {}, {});
+      if (response.status_cd === 1) {
+        let attendanceLogs = response.data.logs;
+        if (attendanceLogs && attendanceLogs.length > 0) {
+          const latestLog = attendanceLogs[attendanceLogs.length - 1];
+          if (latestLog.check_out === null) {
+            setCurrentCheckInTime(latestLog.check_in);
+          } else {
+            setCurrentCheckInTime(null);
+          }
+        } else {
+          setCurrentCheckInTime(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching today\'s attendance:', error);
+      setCurrentCheckInTime(null);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchAttendanceRecords();
+    getTodaysAttendance();
+  }, []);
 
   // Handlers
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await fetchAttendanceRecords();
+    await getTodaysAttendance();
     setRefreshing(false);
   };
 
   const handleMarkAttendance = async () => {
-    await markAttendance();
+    // This function will be called by AttendanceButton after successful API call
+    // to refresh the attendance status from the server
+    console.log('Attendance marked successfully, status should be refreshed');
+    // Refresh attendance records after marking attendance
+    await fetchAttendanceRecords();
+    await getTodaysAttendance();
   };
 
   return (
@@ -98,6 +159,7 @@ export default function AttendanceScreen({ navigation }) {
           <AttendanceButton
             onMarkAttendance={handleMarkAttendance}
             currentStatus={currentAttendanceStatus}
+            checkInTimeFromAPI={currentCheckInTime}
           />
         </View>
 

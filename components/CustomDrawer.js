@@ -32,8 +32,8 @@ export default function CustomDrawer() {
     name: user?.name || "User",
     email: user?.email || "user@company.com",
     avatar: user?.name ? user.name.substring(0, 2).toUpperCase() : "U",
-    role: "Software Engineer",
-    department: "Engineering"
+    role: user?.designation || "Unknown",
+    department: user?.department || "Unknown"
   };
 
   return (
@@ -128,6 +128,17 @@ export default function CustomDrawer() {
               onPress={() => {
                 closeDrawer();
                 // Navigate to documents
+              }}
+              style={styles.drawerItem}
+              labelStyle={styles.drawerItemLabel}
+            />
+
+            <Drawer.Item
+              icon={({ size, color }) => <FileText size={size} color={color} />}
+              label="Tax TDS"
+              onPress={() => {
+                closeDrawer();
+                navigation.navigate("Tax TDS");
               }}
               style={styles.drawerItem}
               labelStyle={styles.drawerItemLabel}
