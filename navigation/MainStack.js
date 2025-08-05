@@ -10,7 +10,7 @@ import AttendanceScreen from "../screens/AttendanceScreen";
 import LeaveScreen from "../screens/LeaveScreen";
 import CalendarScreen from "../screens/CalendarScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import TaxTDSScreen from "../screens/taxtds";
+import TaxTDSScreen from "../screens/TaxTDS";
 import MyEarningsScreen from "../screens/MyEarnings";
 import { DrawerContext } from "../context/DrawerContext";
 import CustomDrawer from "../components/CustomDrawer";
