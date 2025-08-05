@@ -21,6 +21,7 @@ import { getCommonStyles } from "../constants/commonStyles";
 import Factory from "../utils/Factory";
 
 // Import components
+import PageHeader from "../components/PageHeader";
 import CalendarView from "../components/CalendarView";
 
 export default function CalendarScreen({ navigation }) {
@@ -148,33 +149,11 @@ export default function CalendarScreen({ navigation }) {
   }, []);
 
   return (
-    <SafeAreaView
-      style={commonStyles.container}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={colors.background}
-        translucent={false}
-      />
-      <View style={commonStyles.header}>
-        <View style={commonStyles.headerSide}>
-          {React.createElement(getIconComponent("calendar"), {
-            size: 24,
-            style: commonStyles.headIcon
-          })}
-          <Text variant="headlineMedium" style={commonStyles.headerTitle}>
-            Calendar
-          </Text>
-        </View>
-        <View style={commonStyles.headerSide}>
-          {/* Right side of header if needed */}
-        </View>
-      </View>
-
+    <>
+      <PageHeader />
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={commonStyles.content}
+        contentContainerStyle={commonStyles.contentContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -241,25 +220,12 @@ export default function CalendarScreen({ navigation }) {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </>
   );
 }
 
 const getStyles = (colors) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.container
-    },
-
-    content: {
-      flex: 1
-    },
-    contentContainer: {
-      padding: 16,
-      paddingBottom: 100,
-      flexGrow: 1
-    },
     section: {
       marginBottom: 24
     },

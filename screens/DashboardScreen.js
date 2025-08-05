@@ -181,20 +181,10 @@ export default function DashboardScreen({ navigation }) {
   }, []);
 
   return (
-    <SafeAreaView
-      style={commonStyles.container}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={colors.background}
-        translucent={false}
-      />
-      <ProfileHeader onToggleTheme={toggleTheme} isDarkMode={isDarkMode} />
-
-      {/* Main Content */}
+    <View style={commonStyles.container}>
+      <ProfileHeader />
       <ScrollView
-        style={styles.content}
+        style={commonStyles.content}
         contentContainerStyle={commonStyles.contentContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -205,15 +195,12 @@ export default function DashboardScreen({ navigation }) {
       >
         {renderOverview()}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const getStyles = (colors) =>
   StyleSheet.create({
-    content: {
-      flex: 1
-    },
     section: {
       marginBottom: 24
     },

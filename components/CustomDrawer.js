@@ -1,7 +1,7 @@
 // components/CustomDrawer.js
 import React, { useContext } from "react";
 import { Drawer, useTheme, Avatar, Text, Divider, Switch } from "react-native-paper";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Image } from "react-native";
 import { DrawerContext } from "../context/DrawerContext";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
@@ -42,21 +42,19 @@ export default function CustomDrawer() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* User Profile Section */}
           <View style={styles.profileSection}>
-            <Avatar.Text
-              size={60}
-              label={userProfile.avatar}
+            <Image
+              source={require('../assets/ic_launcher_round.png')}
               style={styles.avatar}
-              color={colors.onPrimary}
             />
             <View style={styles.profileInfo}>
               <Text variant="titleMedium" style={styles.userName}>
-                {userProfile.name}
+                Employee Portal
               </Text>
-              <Text variant="bodyMedium" style={styles.userRole}>
-                {userProfile.role}
+              <Text variant="bodySmall" style={styles.userRole}>
+                Powered by
               </Text>
-              <Text variant="bodySmall" style={styles.userDepartment}>
-                {userProfile.department}
+              <Text variant="bodyMedium" style={styles.userDepartment}>
+                Tara First
               </Text>
             </View>
           </View>
@@ -74,7 +72,7 @@ export default function CustomDrawer() {
               label="Profile"
               onPress={() => {
                 closeDrawer();
-                navigation.navigate("Profile");
+                navigation.navigate("profile");
               }}
               style={styles.drawerItem}
               labelStyle={styles.drawerItemLabel}
@@ -135,10 +133,10 @@ export default function CustomDrawer() {
 
             <Drawer.Item
               icon={({ size, color }) => <FileText size={size} color={color} />}
-              label="Tax TDS"
+              label="Tax & TDS"
               onPress={() => {
                 closeDrawer();
-                navigation.navigate("Tax TDS");
+                navigation.navigate("taxtds");
               }}
               style={styles.drawerItem}
               labelStyle={styles.drawerItemLabel}
@@ -146,10 +144,10 @@ export default function CustomDrawer() {
 
             <Drawer.Item
               icon={({ size, color }) => <Shield size={size} color={color} />}
-              label="Policies"
+              label="My Earnings"
               onPress={() => {
                 closeDrawer();
-                // Navigate to policies
+                navigation.navigate("myEarnings");
               }}
               style={styles.drawerItem}
               labelStyle={styles.drawerItemLabel}
@@ -239,6 +237,9 @@ const getStyles = (colors) =>
       marginBottom: 8,
     },
     avatar: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
       backgroundColor: colors.primary,
       marginBottom: 12,
     },

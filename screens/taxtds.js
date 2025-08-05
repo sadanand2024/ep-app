@@ -3,9 +3,8 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  RefreshControl,
   Alert,
-  Dimensions,
 } from 'react-native';
 import {
   Text,
@@ -13,7 +12,6 @@ import {
   Card,
   DataTable,
   Button,
-  IconButton,
 } from 'react-native-paper';
 import {
   Download,
@@ -22,14 +20,14 @@ import {
   FileText,
   FileDown,
 } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-const { width } = Dimensions.get('window');
+import PageHeader from '../components/PageHeader';
+import { getCommonStyles } from '../constants/commonStyles';
 
 export default function TaxTDSScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-
+  const commonStyles = getCommonStyles(colors);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(null);
 
   // Sample data based on the image
@@ -63,10 +61,10 @@ export default function TaxTDSScreen() {
   ];
 
   const chartData = [
-    { month: 'Apr 2024', value: 5400 },
-    { month: 'May 2024', value: 5400 },
-    { month: 'Jul 2024', value: 7200 },
-    { month: 'Jul 2024', value: 4800 },
+    { month: 'Apr 2025', value: 5400 },
+    { month: 'May 2025', value: 5400 },
+    { month: 'Jun 2025', value: 7200 },
+    { month: 'Jul 2025', value: 4800 },
   ];
 
   const maxTDSValue = Math.max(...chartData.map(item => item.value));
@@ -83,21 +81,24 @@ export default function TaxTDSScreen() {
     return `₹ ${amount.toLocaleString('en-IN')}`;
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView}
+    <>
+      <PageHeader title="Tax & TDS Information" subtitle="Know how much tax you've paid, why, and what's ahead." />
+      <ScrollView
+        style={commonStyles.content}
+        contentContainerStyle={commonStyles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Tax & TDS Information
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Know how much tax you've paid, why, and what's ahead.
-          </Text>
-        </View>
 
         {/* Summary Cards */}
         <View style={styles.summaryContainer}>
@@ -109,9 +110,11 @@ export default function TaxTDSScreen() {
                 </Text>
                 <TrendingUp size={20} color={colors.primary} />
               </View>
-              <Text variant="headlineMedium" style={styles.cardAmount}>
-                {formatCurrency(summaryData.totalTDS)}
-              </Text>
+              <View>
+                <Text variant="headlineMedium" style={styles.cardAmount}>
+                  {formatCurrency(summaryData.totalTDS)}
+                </Text>
+              </View>
             </Card.Content>
           </Card>
 
@@ -123,9 +126,11 @@ export default function TaxTDSScreen() {
                 </Text>
                 <CheckCircle size={20} color={colors.primary} />
               </View>
-              <Text variant="headlineSmall" style={styles.cardValue}>
-                {summaryData.taxRegime}
-              </Text>
+              <View>
+                <Text variant="headlineSmall" style={styles.cardValue}>
+                  {summaryData.taxRegime}
+                </Text>
+              </View>
             </Card.Content>
           </Card>
         </View>
@@ -229,7 +234,7 @@ export default function TaxTDSScreen() {
           >
             Download TDS Summary (CSV)
           </Button>
-          
+
           <Button
             mode="outlined"
             onPress={handleDownloadPDF}
@@ -247,7 +252,7 @@ export default function TaxTDSScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </>
   );
 }
 
@@ -275,7 +280,6 @@ const getStyles = (colors) =>
     },
     summaryContainer: {
       flexDirection: 'row',
-      paddingHorizontal: 20,
       gap: 12,
       marginBottom: 20,
     },
@@ -289,6 +293,8 @@ const getStyles = (colors) =>
     },
     cardContent: {
       padding: 16,
+      display: 'flex',
+      justifyContent: 'space-between',
     },
     cardHeader: {
       flexDirection: 'row',
@@ -309,7 +315,6 @@ const getStyles = (colors) =>
       fontWeight: '500',
     },
     tableCard: {
-      marginHorizontal: 20,
       marginBottom: 20,
       elevation: 2,
       shadowColor: colors.shadow,
@@ -354,7 +359,6 @@ const getStyles = (colors) =>
       color: colors.onSurface,
     },
     chartCard: {
-      marginHorizontal: 20,
       marginBottom: 20,
       elevation: 2,
       shadowColor: colors.shadow,
@@ -372,7 +376,6 @@ const getStyles = (colors) =>
       justifyContent: 'space-around',
       alignItems: 'flex-end',
       height: 160,
-      paddingHorizontal: 20,
     },
     barContainer: {
       alignItems: 'center',
@@ -384,7 +387,7 @@ const getStyles = (colors) =>
       marginBottom: 8,
     },
     bar: {
-      width: 20,
+      width: 35,
       borderRadius: 2,
       minHeight: 4,
     },
@@ -399,7 +402,6 @@ const getStyles = (colors) =>
       textAlign: 'center',
     },
     downloadContainer: {
-      paddingHorizontal: 20,
       gap: 12,
       marginBottom: 20,
     },
@@ -407,7 +409,6 @@ const getStyles = (colors) =>
       borderColor: colors.primary,
     },
     footer: {
-      paddingHorizontal: 20,
       paddingBottom: 20,
     },
     footerText: {

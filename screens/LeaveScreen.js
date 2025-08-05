@@ -27,6 +27,7 @@ import { getCommonStyles } from "../constants/commonStyles";
 import { getStatusColor } from "../constants/theme";
 
 // Import components
+import PageHeader from "../components/PageHeader";
 import LeaveBalance from "../components/LeaveBalance";
 import LeaveRequestForm from "../components/LeaveRequestForm";
 
@@ -147,29 +148,8 @@ export default function LeaveScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView
-      style={commonStyles.container}
-      edges={["top", "left", "right"]}
-    >
-      <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={colors.background}
-        translucent={false}
-      />
-      <View style={commonStyles.header}>
-        <View style={commonStyles.headerSide}>
-          {React.createElement(getIconComponent("calendar"), {
-            size: 24,
-            style: commonStyles.headIcon
-          })}
-          <Text variant="headlineMedium" style={commonStyles.headerTitle}>
-            Leave Management
-          </Text>
-        </View>
-        <View style={commonStyles.headerSide}>
-          {/* Right side of header if needed */}
-        </View>
-      </View>
+    <>
+      <PageHeader />
 
       <ScrollView
         style={styles.content}
@@ -308,7 +288,7 @@ export default function LeaveScreen({ navigation }) {
           </View>
         </Modal>
       </Portal>
-    </SafeAreaView>
+    </>
   );
 }
 

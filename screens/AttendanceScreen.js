@@ -20,6 +20,7 @@ import { DrawerContext } from "../context/DrawerContext";
 import { getCommonStyles } from "../constants/commonStyles";
 
 // Import components
+import PageHeader from "../components/PageHeader";
 import AttendanceButton from "../components/AttendanceButton";
 import AttendanceHistory from "../components/AttendanceHistory";
 import { useAttendance } from "../context/AttendanceContext";
@@ -122,30 +123,11 @@ export default function AttendanceScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={commonStyles.container} edges={["top", "left", "right"]}>
-      <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={colors.background}
-        translucent={false}
-      />
-      <View style={commonStyles.header}>
-        <View style={commonStyles.headerSide}>
-          {React.createElement(getIconComponent("clock-check"), {
-            size: 24,
-            style: commonStyles.headIcon
-          })}
-          <Text variant="headlineMedium" style={commonStyles.headerTitle}>
-            Attendance
-          </Text>
-        </View>
-        <View style={commonStyles.headerSide}>
-          {/* Right side of header if needed */}
-        </View>
-      </View>
-
+    <>
+      <PageHeader />
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={commonStyles.content}
+        contentContainerStyle={commonStyles.contentContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -168,20 +150,11 @@ export default function AttendanceScreen({ navigation }) {
           <AttendanceHistory attendanceRecords={attendanceRecords} />
         </View>
       </ScrollView>
-    </SafeAreaView>
-  );
+    </>);
 }
 
 const getStyles = (colors) =>
   StyleSheet.create({
-    content: {
-      flex: 1
-    },
-    contentContainer: {
-      padding: 16,
-      paddingBottom: 100,
-      flexGrow: 1
-    },
     section: {
       marginBottom: 24
     },

@@ -3,6 +3,13 @@ import { StyleSheet, Platform } from "react-native";
 export const getCommonStyles = (colors) =>
   StyleSheet.create({
     // Header style for all screens
+    content: {
+      flex: 1
+    },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background
+    },
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -13,15 +20,15 @@ export const getCommonStyles = (colors) =>
       // Platform-specific bottom shadow/elevation
       ...(Platform.OS === "android"
         ? {
-            borderBottomWidth: 2,
-            borderBottomColor: colors.borderColor
-          }
+          borderBottomWidth: 2,
+          borderBottomColor: colors.borderColor
+        }
         : {
-            shadowColor: "#000", // iOS shadow
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4
-          })
+          shadowColor: "#000", // iOS shadow
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4
+        })
     },
 
     // Header title style
@@ -89,11 +96,6 @@ export const getCommonStyles = (colors) =>
       shadowOpacity: 0.15,
       shadowRadius: 8,
       elevation: 8
-    },
-    // Common container styles
-    container: {
-      flex: 1,
-      backgroundColor: colors.background
     },
     contentContainer: {
       padding: 16,
