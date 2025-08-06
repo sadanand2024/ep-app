@@ -109,11 +109,6 @@ export default function ProfileScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const handleEditProfile = () => {
-    // Navigate to edit profile screen
-    console.log("Edit profile pressed");
-  };
-
   const handleChangePassword = () => {
     // Navigate to change password screen
     console.log("Change password pressed");
@@ -373,7 +368,7 @@ export default function ProfileScreen({ navigation }) {
                   })}
                 </View>
               )}
-              onPress={handleEditProfile}
+              onPress={() => navigation.navigate("personalInfo")}
               style={styles.listItem}
             />
 

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from "@env";
+import { handleApiLogout } from './logoutHandler';
 
 const Factory = async (api, URL, payload, headers = {}, config = {}) => {
     const BASE_URL = API_URL;
@@ -31,9 +32,9 @@ const Factory = async (api, URL, payload, headers = {}, config = {}) => {
 
     const handleLogout = async () => {
         try {
-            // Clear auth token from AsyncStorage
-            await AsyncStorage.removeItem('authToken');
-            console.log('User logged out due to invalid token');
+            // Use the centralized logout handler
+            await handleApiLogout();
+            console.log('User logged out due to invalid token - navigation will reset automatically');
         } catch (error) {
             console.error('Error during logout:', error);
         }

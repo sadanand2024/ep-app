@@ -12,6 +12,7 @@ import CalendarScreen from "../screens/CalendarScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import TaxTDSScreen from "../screens/TaxTDS";
 import MyEarningsScreen from "../screens/MyEarnings";
+import PersonalInfoScreen from "../screens/Settings/PersonalInfo";
 import { DrawerContext } from "../context/DrawerContext";
 import CustomDrawer from "../components/CustomDrawer";
 import {
@@ -159,6 +160,12 @@ export default function MainStack() {
           <Stack.Screen
             name="myEarnings"
             component={MyEarningsScreen}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="personalInfo"
+            component={PersonalInfoScreen}
             options={{ headerShown: false }}
           />
 

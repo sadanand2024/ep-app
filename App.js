@@ -15,6 +15,7 @@ if (__DEV__) {
   require('./ReactotronConfig');
 }
 
+const Stack = createNativeStackNavigator();
 function AppContent() {
   const { isDarkMode } = useContext(DrawerContext);
   const theme = isDarkMode ? AppDarkTheme : AppLightTheme;
