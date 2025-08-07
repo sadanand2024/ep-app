@@ -5,7 +5,8 @@ import {
     ScrollView,
     RefreshControl,
     TouchableOpacity,
-    Dimensions
+    Dimensions,
+    Alert
 } from "react-native";
 import { Text, useTheme, Card, DataTable, Button, Menu, Divider } from "react-native-paper";
 import {
@@ -25,7 +26,7 @@ import { DrawerContext } from "../context/DrawerContext";
 import { getCommonStyles } from "../constants/commonStyles";
 import Factory from "../utils/Factory";
 import PageHeader from "../components/PageHeader";
-import { monthsObj, financialYears } from "../utils/constants";
+import { monthsObj, financialYears, monthValues, getDefaultMonth } from "../utils/constants";
 
 const { width } = Dimensions.get('window');
 
@@ -34,17 +35,14 @@ export default function MyEarningsScreen({ navigation }) {
     const styles = getStyles(colors);
     const commonStyles = getCommonStyles(colors);
     const { isDarkMode } = useContext(DrawerContext);
-
     // State management
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState('salary');
     const [financialYear, setFinancialYear] = useState('2025-2026');
-    const [selectedMonth, setSelectedMonth] = useState('August');
+    const [selectedMonth, setSelectedMonth] = useState(getDefaultMonth());
     const [yearMenuVisible, setYearMenuVisible] = useState(false);
     const [monthMenuVisible, setMonthMenuVisible] = useState(false);
-
-    // Sample data based on the image
-    const salaryData = {
+    const [salaryData, setSalaryData] = useState({
         earnings: [
             { item: 'Basic Salary', august: '₹0', ytd: '₹6,15,323', icon: DollarSign, color: '#4CAF50' },
             { item: 'Hra (House Rent Allowance)', august: '₹0', ytd: '₹3,07,661', icon: Home, color: '#2196F3' },
@@ -58,7 +56,7 @@ export default function MyEarningsScreen({ navigation }) {
             { item: 'Total Deductions', august: '₹0', ytd: '₹2,73,377', icon: TrendingDown, color: '#F44336' }
         ],
         netSalary: { item: 'Net Salary', august: '₹0', ytd: '₹9,50,939', icon: Wallet, color: '#4CAF50' }
-    };
+    });
 
     const months = Object.values(monthsObj);
 
@@ -283,6 +281,21 @@ export default function MyEarningsScreen({ navigation }) {
             </Card.Content>
         </Card>
     );
+
+    useEffect(() => {
+        const getSalaryBreakdown = async () => {
+            let url = `/payroll/employee-ytd-details/?month=${monthValues[selectedMonth]}&financial_year=${financialYear}`
+            const response = await Factory('get', url, {}, {});
+            if (response.status_cd === 1) {
+                console.tron.log(response);
+                setSalaryData(response.data)
+            } else {    
+                Alert.alert('Denied', response.data.error);
+            }
+        }
+        if (selectedMonth && financialYear)
+            getSalaryBreakdown();
+    }, [selectedMonth, financialYear]);
 
     return (
         <>

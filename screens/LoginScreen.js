@@ -47,7 +47,9 @@ export default function LoginScreen() {
     setError("");
     let BASE_URL = API_URL + "/payroll/auth/employee-login/";
     try {
+      console.log(BASE_URL)
       const res = await axios.post(BASE_URL, { username, password });
+      console.log(res)
       const serviceToken = res?.data?.access_token;
       await saveToken(serviceToken);
       await saveUser(res?.data?.employee);
