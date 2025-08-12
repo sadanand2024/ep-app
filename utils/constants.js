@@ -13,7 +13,7 @@ const monthsObj = {
     December: 'December',
 }
 
-const monthValues = {
+const monthstoInt = {
     January: 1,
     February: 2,
     March: 3,
@@ -24,8 +24,23 @@ const monthValues = {
     August: 8,
     September: 9,
     October: 10,
-    November: 11,   
+    November: 11,
     December: 12,
+}
+
+const intToMonths = {
+    1: 'January',
+    2: 'February',
+    3: 'March',
+    4: 'April',
+    5: 'May',
+    6: 'June',
+    7: 'July',
+    8: 'August',
+    9: 'September',
+    10: 'October',
+    11: 'November',
+    12: 'December',
 }
 
 const financialYears = [
@@ -56,4 +71,23 @@ const getDefaultMonth = () => {
     return Object.values(monthsObj)[monthIndex];
 };
 
-export { monthsObj, financialYears, monthValues, getDefaultMonth }
+const putCommas = (value) => {
+    // Format number with Indian commas (lakh/crore system)
+    if (typeof value !== "string" && typeof value !== "number") return value;
+    let str = value.toString().replace(/[^0-9.]/g, "");
+    if (str === "") return value;
+    let [intPart, decPart] = str.split(".");
+    if (intPart.length <= 3) {
+        return (value.toString().match(/^[^\d]*/)?.[0] || "") + intPart + (decPart ? "." + decPart : "");
+    }
+    let last3 = intPart.slice(-3);
+    let other = intPart.slice(0, -3);
+    if (other !== "") {
+        last3 = "," + last3;
+    }
+    let formatted = other.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + last3;
+    let prefix = value.toString().match(/^[^\d]*/)?.[0] || "";
+    return prefix + formatted + (decPart ? "." + decPart : "");
+}
+
+export { monthsObj, monthstoInt, intToMonths, financialYears, getDefaultMonth, putCommas }

@@ -148,16 +148,17 @@ export default function LeaveScreen({ navigation }) {
   };
 
   return (
-    <>
+    <View style={commonStyles.container}>
       <PageHeader />
-
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={commonStyles.content}
+        contentContainerStyle={commonStyles.contentContainer}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={false}
       >
         {/* Leave Balance Section */}
         <View style={styles.section}>
@@ -288,7 +289,7 @@ export default function LeaveScreen({ navigation }) {
           </View>
         </Modal>
       </Portal>
-    </>
+    </View>
   );
 }
 

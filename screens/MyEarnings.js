@@ -6,7 +6,8 @@ import {
     RefreshControl,
     TouchableOpacity,
     Dimensions,
-    Alert
+    Alert,
+    ActivityIndicator
 } from "react-native";
 import { Text, useTheme, Card, DataTable, Button, Menu, Divider } from "react-native-paper";
 import {
@@ -26,7 +27,7 @@ import { DrawerContext } from "../context/DrawerContext";
 import { getCommonStyles } from "../constants/commonStyles";
 import Factory from "../utils/Factory";
 import PageHeader from "../components/PageHeader";
-import { monthsObj, financialYears, monthValues, getDefaultMonth } from "../utils/constants";
+import { monthsObj, financialYears, monthstoInt, getDefaultMonth, putCommas } from "../utils/constants";
 
 const { width } = Dimensions.get('window');
 
@@ -44,25 +45,73 @@ export default function MyEarningsScreen({ navigation }) {
     const [monthMenuVisible, setMonthMenuVisible] = useState(false);
     const [salaryData, setSalaryData] = useState({
         earnings: [
-            { item: 'Basic Salary', august: '₹0', ytd: '₹6,15,323', icon: DollarSign, color: '#4CAF50' },
-            { item: 'Hra (House Rent Allowance)', august: '₹0', ytd: '₹3,07,661', icon: Home, color: '#2196F3' },
-            { item: 'Children Education Allowance', august: '₹0', ytd: '₹52,742', icon: GraduationCap, color: '#FF9800' },
-            { item: 'Gross (Total Earnings)', august: '₹0', ytd: '₹12,24,316', icon: TrendingUp, color: '#4CAF50' }
+            { component_name: 'Basic Salary', month_data: '₹0', ytd: '₹6,15,323', icon: DollarSign, color: '#4CAF50' },
+            { component_name: 'Hra (House Rent Allowance)', month_data: '₹0', ytd: '₹3,07,661', icon: Home, color: '#2196F3' },
+            { component_name: 'Children Education Allowance', month_data: '₹0', ytd: '₹52,742', icon: GraduationCap, color: '#FF9800' },
+            { component_name: 'Gross (Total Earnings)', month_data: '₹0', ytd: '₹12,24,316', icon: TrendingUp, color: '#4CAF50' }
         ],
         deductions: [
-            { item: 'Epf (Employee Provident Fund)', august: '₹0', ytd: '₹7,200', icon: PiggyBank, color: '#9C27B0' },
-            { item: 'Pt (Professional Tax)', august: '₹0', ytd: '₹800', icon: CreditCard, color: '#F44336' },
-            { item: 'Tds (Tax Deducted at Source)', august: '₹0', ytd: '₹2,64,322', icon: TrendingDown, color: '#FF5722' },
-            { item: 'Total Deductions', august: '₹0', ytd: '₹2,73,377', icon: TrendingDown, color: '#F44336' }
+            { component_name: 'Epf (Employee Provident Fund)', month_data: '₹0', ytd: '₹7,200', icon: PiggyBank, color: '#9C27B0' },
+            { component_name: 'Pt (Professional Tax)', month_data: '₹0', ytd: '₹800', icon: CreditCard, color: '#F44336' },
+            { component_name: 'Tds (Tax Deducted at Source)', month_data: '₹0', ytd: '₹2,64,322', icon: TrendingDown, color: '#FF5722' },
+            { component_name: 'Total Deductions', month_data: '₹0', ytd: '₹2,73,377', icon: TrendingDown, color: '#F44336' }
         ],
-        netSalary: { item: 'Net Salary', august: '₹0', ytd: '₹9,50,939', icon: Wallet, color: '#4CAF50' }
+        net_salary: { component_name: 'Net Salary', month_data: '₹0', ytd: '₹9,50,939', icon: Wallet, color: '#4CAF50' }
     });
+    const [pfData, setPfData] = useState({
+        employee_pf: { month_data: 0, ytd: 0 },
+        employer_pf: { month_data: 0, ytd: 0 },
+        total_pf: { month_data: 0, ytd: 0 }
+    });
+    const [pfLoading, setPfLoading] = useState(false);
 
     const months = Object.values(monthsObj);
 
+    // Helper function to check if data is empty
+    const isDataEmpty = (data) => {
+        if (!data) return true;
+        
+        // For salary data
+        if (data.earnings && data.deductions) {
+            const hasEarnings = data.earnings && data.earnings.length > 0;
+            const hasDeductions = data.deductions && data.deductions.length > 0;
+            const hasGrossIncome = data.gross_income && (data.gross_income.month_data > 0 || data.gross_income.ytd > 0);
+            const hasNetSalary = data.net_salary && (data.net_salary.month_data > 0 || data.net_salary.ytd > 0);
+            
+            return !hasEarnings && !hasDeductions && !hasGrossIncome && !hasNetSalary;
+        }
+        
+        // For PF data
+        if (data.employee_pf || data.employer_pf || data.total_pf) {
+            const hasEmployeePF = data.employee_pf && (data.employee_pf.month_data > 0 || data.employee_pf.ytd > 0);
+            const hasEmployerPF = data.employer_pf && (data.employer_pf.month_data > 0 || data.employer_pf.ytd > 0);
+            const hasTotalPF = data.total_pf && (data.total_pf.month_data > 0 || data.total_pf.ytd > 0);
+            
+            return !hasEmployeePF && !hasEmployerPF && !hasTotalPF;
+        }
+        
+        return true;
+    };
+
     const onRefresh = async () => {
         setRefreshing(true);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+            // Refresh salary data
+            let salaryUrl = `/payroll/employee-ytd-details/?month=${monthstoInt[selectedMonth]}&financial_year=${financialYear}`;
+            const salaryResponse = await Factory('get', salaryUrl, {}, {});
+            if (salaryResponse.status_cd === 1) {
+                setSalaryData(salaryResponse.data);
+            }
+
+            // Refresh PF data
+            let pfUrl = `/payroll/pf-breakdown/?month=${monthstoInt[selectedMonth]}&financial_year=${financialYear}`;
+            const pfResponse = await Factory('get', pfUrl, {}, {});
+            if (pfResponse.status_cd === 1) {
+                setPfData(pfResponse.data);
+            }
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        }
         setRefreshing(false);
     };
 
@@ -158,143 +207,254 @@ export default function MyEarningsScreen({ navigation }) {
     const renderSalaryTable = () => (
         <Card style={styles.tableCard}>
             <Card.Content style={styles.tableContent}>
-                <View style={styles.tableHeader}>
-                    <Text variant="titleLarge" style={styles.tableTitle}>Salary Breakdown</Text>
-                    <Text variant="bodyMedium" style={styles.tableSubtitle}>
-                        {selectedMonth} {financialYear}
-                    </Text>
-                </View>
-
-                <DataTable>
-                    <DataTable.Header style={styles.tableHeaderRow}>
-                        <DataTable.Title style={styles.itemColumn}>
-                            <Text variant="titleMedium" style={styles.headerText}>Item</Text>
-                        </DataTable.Title>
-                        <DataTable.Title numeric style={styles.monthColumn}>
-                            <Text variant="titleMedium" style={styles.headerText}>
-                                Salary
+                {isDataEmpty(salaryData) ? (
+                    <View style={styles.emptyContainer}>
+                        <DollarSign size={48} color={colors.onSurfaceVariant} />
+                        <Text variant="titleLarge" style={styles.emptyTitle}>
+                            No Salary Data Found
+                        </Text>
+                        <Text variant="bodyMedium" style={styles.emptySubtitle}>
+                            No salary information available for {selectedMonth} {financialYear}
+                        </Text>
+                    </View>
+                ) : (
+                    <>
+                        <View style={styles.tableHeader}>
+                            <Text variant="titleLarge" style={styles.tableTitle}>Salary Breakdown</Text>
+                            <Text variant="bodyMedium" style={styles.tableSubtitle}>
+                                {selectedMonth} {financialYear}
                             </Text>
-                        </DataTable.Title>
-                        <DataTable.Title numeric style={styles.ytdColumn}>
-                            <Text variant="titleMedium" style={styles.headerText}>YTD</Text>
-                        </DataTable.Title>
-                    </DataTable.Header>
+                        </View>
 
-                    {/* Earnings Section */}
-                    <DataTable.Row style={styles.categoryRow}>
-                        <DataTable.Cell style={styles.itemColumn}>
-                            <View style={styles.categoryContainer}>
-                                <TrendingUp size={16} color={colors.primary} />
-                                <Text variant="titleMedium" style={styles.categoryText}>Earnings</Text>
-                            </View>
-                        </DataTable.Cell>
-                        <DataTable.Cell numeric style={styles.monthColumn}></DataTable.Cell>
-                        <DataTable.Cell numeric style={styles.ytdColumn}></DataTable.Cell>
-                    </DataTable.Row>
+                        <DataTable>
+                            <DataTable.Header style={styles.tableHeaderRow}>
+                                <DataTable.Title style={styles.itemColumn}>
+                                    <Text variant="titleMedium" style={styles.headerText}>Item</Text>
+                                </DataTable.Title>
+                                <DataTable.Title numeric style={styles.monthColumn}>
+                                    <Text variant="titleMedium" style={styles.headerText}>
+                                        Salary
+                                    </Text>
+                                </DataTable.Title>
+                                <DataTable.Title numeric style={styles.ytdColumn}>
+                                    <Text variant="titleMedium" style={styles.headerText}>YTD</Text>
+                                </DataTable.Title>
+                            </DataTable.Header>
 
-                    {salaryData.earnings.map((row, index) => (
-                        <DataTable.Row key={`earnings-${index}`} style={styles.dataRow}>
-                            <DataTable.Cell style={styles.itemColumn}>
-                                <View style={styles.itemContainer}>
-                                    <Text variant="bodyMedium" style={styles.itemText}>{row.item}</Text>
-                                </View>
-                            </DataTable.Cell>
-                            <DataTable.Cell numeric style={styles.monthColumn}>
-                                <Text variant="bodyMedium" style={styles.amountText}>{row.august}</Text>
-                            </DataTable.Cell>
-                            <DataTable.Cell numeric style={styles.ytdColumn}>
-                                <Text variant="bodyMedium" style={styles.amountText}>{row.ytd}</Text>
-                            </DataTable.Cell>
-                        </DataTable.Row>
-                    ))}
+                            {/* Earnings Section */}
+                            <DataTable.Row style={styles.categoryRow}>
+                                <DataTable.Cell style={styles.itemColumn}>
+                                    <View style={styles.categoryContainer}>
+                                        <TrendingUp size={16} color={colors.primary} />
+                                        <Text variant="titleMedium" style={styles.categoryText}>Earnings</Text>
+                                    </View>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.monthColumn}></DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.ytdColumn}></DataTable.Cell>
+                            </DataTable.Row>
 
-                    <Divider style={styles.divider} />
+                            {salaryData.earnings.map((row, index) => (
+                                <DataTable.Row key={`earnings-${index}`} style={styles.dataRow}>
+                                    <DataTable.Cell style={styles.itemColumn}>
+                                        <View style={styles.itemContainer}>
+                                            <Text variant="bodyMedium" style={styles.itemText}>{row.component_name}</Text>
+                                        </View>
+                                    </DataTable.Cell>
+                                    <DataTable.Cell numeric style={styles.monthColumn}>
+                                        <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(row.month_data)}</Text>
+                                    </DataTable.Cell>
+                                    <DataTable.Cell numeric style={styles.ytdColumn}>
+                                        <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(row.ytd)}</Text>
+                                    </DataTable.Cell>
+                                </DataTable.Row>
+                            ))}
+                            <DataTable.Row key={`earnings-gross`} style={styles.dataRow}>
+                                <DataTable.Cell style={styles.itemColumn}>
+                                    <View style={styles.itemContainer}>
+                                        <Text variant="bodyMedium" style={styles.itemText}>Gross</Text>
+                                    </View>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.monthColumn}>
+                                    <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(salaryData?.gross_income?.month_data)}</Text>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.ytdColumn}>
+                                    <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(salaryData?.gross_income?.ytd)}</Text>
+                                </DataTable.Cell>
+                            </DataTable.Row>
 
-                    {/* Deductions Section */}
-                    <DataTable.Row style={styles.categoryRow}>
-                        <DataTable.Cell style={styles.itemColumn}>
-                            <View style={styles.categoryContainer}>
-                                <TrendingDown size={16} color={colors.error} />
-                                <Text variant="titleMedium" style={[styles.categoryText, { color: colors.error }]}>Deductions</Text>
-                            </View>
-                        </DataTable.Cell>
-                        <DataTable.Cell numeric style={styles.monthColumn}></DataTable.Cell>
-                        <DataTable.Cell numeric style={styles.ytdColumn}></DataTable.Cell>
-                    </DataTable.Row>
+                            <Divider style={styles.divider} />
 
-                    {salaryData.deductions.map((row, index) => (
-                        <DataTable.Row key={`deductions-${index}`} style={styles.dataRow}>
-                            <DataTable.Cell style={styles.itemColumn}>
-                                <View style={styles.itemContainer}>
-                                    <Text variant="bodyMedium" style={styles.itemText}>{row.item}</Text>
-                                </View>
-                            </DataTable.Cell>
-                            <DataTable.Cell numeric style={styles.monthColumn}>
-                                <Text variant="bodyMedium" style={styles.amountText}>{row.august}</Text>
-                            </DataTable.Cell>
-                            <DataTable.Cell numeric style={styles.ytdColumn}>
-                                <Text variant="bodyMedium" style={styles.amountText}>{row.ytd}</Text>
-                            </DataTable.Cell>
-                        </DataTable.Row>
-                    ))}
+                            {/* Deductions Section */}
+                            <DataTable.Row style={styles.categoryRow}>
+                                <DataTable.Cell style={styles.itemColumn}>
+                                    <View style={styles.categoryContainer}>
+                                        <TrendingDown size={16} color={colors.error} />
+                                        <Text variant="titleMedium" style={[styles.categoryText, { color: colors.error }]}>Deductions</Text>
+                                    </View>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.monthColumn}></DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.ytdColumn}></DataTable.Cell>
+                            </DataTable.Row>
 
-                    <Divider style={styles.divider} />
+                            {salaryData.deductions.map((row, index) => (
+                                <DataTable.Row key={`deductions-${index}`} style={styles.dataRow}>
+                                    <DataTable.Cell style={styles.itemColumn}>
+                                        <View style={styles.itemContainer}>
+                                            <Text variant="bodyMedium" style={styles.itemText}>{row?.component_name}</Text>
+                                        </View>
+                                    </DataTable.Cell>
+                                    <DataTable.Cell numeric style={styles.monthColumn}>
+                                        <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(row?.month_data)}</Text>
+                                    </DataTable.Cell>
+                                    <DataTable.Cell numeric style={styles.ytdColumn}>
+                                        <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(row?.ytd)}</Text>
+                                    </DataTable.Cell>
+                                </DataTable.Row>
+                            ))}
 
-                    {/* Net Salary */}
-                    <DataTable.Row style={styles.netSalaryRow}>
-                        <DataTable.Cell style={styles.itemColumn}>
-                            <View style={styles.itemContainer}>
-                                <Wallet size={16} color={colors.primary} />
-                                <Text variant="titleMedium" style={styles.netSalaryText}>{salaryData.netSalary.item}</Text>
-                            </View>
-                        </DataTable.Cell>
-                        <DataTable.Cell numeric style={styles.monthColumn}>
-                            <Text variant="titleMedium" style={styles.netSalaryAmount}>{salaryData.netSalary.august}</Text>
-                        </DataTable.Cell>
-                        <DataTable.Cell numeric style={styles.ytdColumn}>
-                            <Text variant="titleMedium" style={styles.netSalaryAmount}>{salaryData.netSalary.ytd}</Text>
-                        </DataTable.Cell>
-                    </DataTable.Row>
-                </DataTable>
+                            <DataTable.Row key={`total-deductions`} style={styles.dataRow}>
+                                <DataTable.Cell style={styles.itemColumn}>
+                                    <View style={styles.itemContainer}>
+                                        <Text variant="bodyMedium" style={styles.itemText}>Total Deductions</Text>
+                                    </View>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.monthColumn}>
+                                    <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(salaryData?.deduction_total?.month_data)}</Text>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.ytdColumn}>
+                                    <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(salaryData?.deduction_total?.ytd)}</Text>
+                                </DataTable.Cell>
+                            </DataTable.Row>
+                            <Divider style={styles.divider} />
+
+                            {/* Net Salary */}
+                            <DataTable.Row style={styles.netSalaryRow}>
+                                <DataTable.Cell style={styles.itemColumn}>
+                                    <View style={styles.itemContainer}>
+                                        <Wallet size={16} color={colors.primary} />
+                                        <Text variant="titleMedium" style={styles.netSalaryText}>Net Salary</Text>
+                                    </View>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.monthColumn}>
+                                    <Text variant="titleMedium" style={styles.netSalaryAmount}>₹{putCommas(salaryData?.net_salary?.month_data)}</Text>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric style={styles.ytdColumn}>
+                                    <Text variant="titleMedium" style={styles.netSalaryAmount}>₹{putCommas(salaryData?.net_salary?.ytd)}</Text>
+                                </DataTable.Cell>
+                            </DataTable.Row>
+                        </DataTable>
+                    </>
+                )}
             </Card.Content>
         </Card>
     );
 
     const renderPFBreakdown = () => (
         <Card style={styles.tableCard}>
-            <Card.Content style={styles.pfPlaceholder}>
-                <PiggyBank size={48} color={colors.onSurfaceVariant} />
-                <Text variant="titleLarge" style={styles.placeholderText}>
-                    PF Breakdown
-                </Text>
-                <Text variant="bodyMedium" style={styles.placeholderSubtext}>
-                    PF details will be displayed here
-                </Text>
-                <Button
-                    mode="outlined"
-                    onPress={() => { }}
-                    style={styles.placeholderButton}
-                    icon={Download}
-                >
-                    Download PF Statement
-                </Button>
+            <Card.Content>
+                {pfLoading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text variant="bodyMedium" style={styles.loadingText}>Loading PF data...</Text>
+                    </View>
+                ) : isDataEmpty(pfData) ? (
+                    <View style={styles.emptyContainer}>
+                        <PiggyBank size={48} color={colors.onSurfaceVariant} />
+                        <Text variant="titleLarge" style={styles.emptyTitle}>
+                            No PF Data Found
+                        </Text>
+                        <Text variant="bodyMedium" style={styles.emptySubtitle}>
+                            No provident fund information available for {selectedMonth} {financialYear}
+                        </Text>
+                    </View>
+                ) : (
+                    <DataTable>
+                        <DataTable.Header style={styles.tableHeader}>
+                            <DataTable.Title style={styles.itemColumn}>
+                                <Text variant="titleMedium" style={styles.headerText}>Item</Text>
+                            </DataTable.Title>
+                            <DataTable.Title numeric style={styles.monthColumn}>
+                                <Text variant="titleMedium" style={styles.headerText}>{months[selectedMonth]} {financialYear}</Text>
+                            </DataTable.Title>
+                            <DataTable.Title numeric style={styles.ytdColumn}>
+                                <Text variant="titleMedium" style={styles.headerText}>YTD</Text>
+                            </DataTable.Title>
+                        </DataTable.Header>
+
+                        <DataTable.Row style={styles.tableRow}>
+                            <DataTable.Cell style={styles.itemColumn}>
+                                <Text variant="bodyMedium" style={styles.itemText}>Employee EPF Contribution</Text>
+                            </DataTable.Cell>
+                            <DataTable.Cell numeric style={styles.monthColumn}>
+                                <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(pfData?.employee_pf?.month_data)}</Text>
+                            </DataTable.Cell>
+                            <DataTable.Cell numeric style={styles.ytdColumn}>
+                                <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(pfData?.employee_pf?.ytd)}</Text>
+                            </DataTable.Cell>
+                        </DataTable.Row>
+
+                        <DataTable.Row style={styles.tableRow}>
+                            <DataTable.Cell style={styles.itemColumn}>
+                                <Text variant="bodyMedium" style={styles.itemText}>Employer EPF Contribution</Text>
+                            </DataTable.Cell>
+                            <DataTable.Cell numeric style={styles.monthColumn}>
+                                <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(pfData?.employer_pf?.month_data)}</Text>
+                            </DataTable.Cell>
+                            <DataTable.Cell numeric style={styles.ytdColumn}>
+                                <Text variant="bodyMedium" style={styles.amountText}>₹{putCommas(pfData?.employer_pf?.ytd)}</Text>
+                            </DataTable.Cell>
+                        </DataTable.Row>
+
+                        <DataTable.Row style={[styles.tableRow, styles.totalRow]}>
+                            <DataTable.Cell style={styles.itemColumn}>
+                                <Text variant="titleMedium" style={styles.totalText}>Total EPF</Text>
+                            </DataTable.Cell>
+                            <DataTable.Cell numeric style={styles.monthColumn}>
+                                <Text variant="titleMedium" style={styles.totalAmountText}>₹{putCommas(pfData?.total_pf?.month_data)}</Text>
+                            </DataTable.Cell>
+                            <DataTable.Cell numeric style={styles.ytdColumn}>
+                                <Text variant="titleMedium" style={styles.totalAmountText}>₹{putCommas(pfData?.total_pf?.ytd)}</Text>
+                            </DataTable.Cell>
+                        </DataTable.Row>
+                    </DataTable>
+                )}
             </Card.Content>
         </Card>
     );
 
     useEffect(() => {
         const getSalaryBreakdown = async () => {
-            let url = `/payroll/employee-ytd-details/?month=${monthValues[selectedMonth]}&financial_year=${financialYear}`
+            let url = `/payroll/employee-ytd-details/?month=${monthstoInt[selectedMonth]}&financial_year=${financialYear}`
             const response = await Factory('get', url, {}, {});
             if (response.status_cd === 1) {
-                console.tron.log(response);
                 setSalaryData(response.data)
-            } else {    
+            } else {
                 Alert.alert('Denied', response.data.error);
             }
         }
-        if (selectedMonth && financialYear)
+
+        const getPFBreakdown = async () => {
+            setPfLoading(true);
+            try {
+                let url = `/payroll/pf-breakdown/?month=${monthstoInt[selectedMonth]}&financial_year=${financialYear}`
+                const response = await Factory('get', url, {}, {});
+                if (response.status_cd === 1) {
+                    setPfData(response.data)
+                } else {
+                    Alert.alert('Denied', response.data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching PF data:', error);
+                Alert.alert('Error', 'Failed to fetch PF data');
+            } finally {
+                setPfLoading(false);
+            }
+        }
+
+        if (selectedMonth && financialYear) {
             getSalaryBreakdown();
+            getPFBreakdown();
+        }
     }, [selectedMonth, financialYear]);
 
     return (
@@ -489,7 +649,7 @@ const getStyles = (colors) =>
         },
         divider: {
             marginVertical: 4,
-            backgroundColor: colors.outline
+            backgroundColor: colors.outlineLight
         },
         netSalaryRow: {
             paddingHorizontal: 12
@@ -518,6 +678,23 @@ const getStyles = (colors) =>
         placeholderButton: {
             borderRadius: 8
         },
+        tableRow: {
+            paddingHorizontal: 12,
+            borderBottomWidth: 0.5,
+            borderBottomColor: colors.outlineLight
+        },
+        totalRow: {
+            borderBottomWidth: 0,
+            paddingBottom: 0
+        },
+        totalText: {
+            color: colors.onSurface,
+            fontWeight: '600'
+        },
+        totalAmountText: {
+            color: colors.primary,
+            fontWeight: '600'
+        },
         menuContent: {
             backgroundColor: 'white',
             borderRadius: 6,
@@ -535,4 +712,27 @@ const getStyles = (colors) =>
             fontWeight: '400',
             fontSize: 12,
         },
+        loadingContainer: {
+            padding: 20,
+            alignItems: 'center',
+            gap: 12
+        },
+        loadingText: {
+            color: colors.onSurfaceVariant,
+            fontSize: 14
+        },
+        emptyContainer: {
+            padding: 32,
+            alignItems: 'center',
+            justifyContent: 'center'
+        },
+        emptyTitle: {
+            marginTop: 12,
+            marginBottom: 8,
+            fontWeight: '600'
+        },
+        emptySubtitle: {
+            textAlign: 'center',
+            marginBottom: 20
+        }
     });

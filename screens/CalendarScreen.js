@@ -149,7 +149,7 @@ export default function CalendarScreen({ navigation }) {
   }, []);
 
   return (
-    <>
+    <View style={commonStyles.container}  >
       <PageHeader />
       <ScrollView
         style={commonStyles.content}
@@ -158,12 +158,11 @@ export default function CalendarScreen({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={false}
       >
         {/* Calendar View Section */}
         <View style={styles.section}>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Monthly Calendar
-          </Text>
           <CalendarView
             events={events}
             attendanceRecords={attendanceRecords}
@@ -220,7 +219,7 @@ export default function CalendarScreen({ navigation }) {
           )}
         </View>
       </ScrollView>
-    </>
+    </View>
   );
 }
 

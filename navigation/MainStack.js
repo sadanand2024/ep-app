@@ -11,6 +11,8 @@ import LeaveScreen from "../screens/LeaveScreen";
 import CalendarScreen from "../screens/CalendarScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import TaxTDSScreen from "../screens/TaxTDS";
+import PayslipsScreen from "../screens/Payslips";
+import PayslipViewScreen from "../screens/Payslips/PayslipView";
 import MyEarningsScreen from "../screens/MyEarnings";
 import PersonalInfoScreen from "../screens/Settings/PersonalInfo";
 import { DrawerContext } from "../context/DrawerContext";
@@ -166,6 +168,18 @@ export default function MainStack() {
           <Stack.Screen
             name="personalInfo"
             component={PersonalInfoScreen}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="payslips"
+            component={PayslipsScreen}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="PayslipView"
+            component={PayslipViewScreen}
             options={{ headerShown: false }}
           />
 

@@ -126,7 +126,7 @@ export default function ProfileScreen({ navigation }) {
 
 
   return (
-    <>
+    <View style={commonStyles.container}>
       <PageHeader />
       <ScrollView
         style={commonStyles.content}
@@ -135,6 +135,8 @@ export default function ProfileScreen({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={false}
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
@@ -470,7 +472,7 @@ export default function ProfileScreen({ navigation }) {
           </Card.Content>
         </Card>
       </ScrollView>
-    </>
+    </View>
   );
 }
 

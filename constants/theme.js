@@ -17,6 +17,7 @@ const lightColors = {
   surfaceVariant: "#eef2f6",
   onSurface: "#364152",
   text: "#121926",
+  textLight: "#697586",
   drawerColor: "#ffffff",
   borderColor: "#d2d6d9c9"
 };

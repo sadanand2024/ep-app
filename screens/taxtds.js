@@ -88,7 +88,7 @@ export default function TaxTDSScreen() {
   };
 
   return (
-    <>
+    <View style={commonStyles.container}>
       <PageHeader title="Tax & TDS Information" subtitle="Know how much tax you've paid, why, and what's ahead." />
       <ScrollView
         style={commonStyles.content}
@@ -252,7 +252,7 @@ export default function TaxTDSScreen() {
           </Text>
         </View>
       </ScrollView>
-    </>
+    </View>
   );
 }
 

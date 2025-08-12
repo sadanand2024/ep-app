@@ -123,7 +123,7 @@ export default function AttendanceScreen({ navigation }) {
   };
 
   return (
-    <>
+    <View style={commonStyles.container}>
       <PageHeader />
       <ScrollView
         style={commonStyles.content}
@@ -132,6 +132,8 @@ export default function AttendanceScreen({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={false}
       >
         {/* Mark Attendance Section */}
         <View style={styles.section}>
@@ -150,7 +152,7 @@ export default function AttendanceScreen({ navigation }) {
           <AttendanceHistory attendanceRecords={attendanceRecords} />
         </View>
       </ScrollView>
-    </>);
+    </View>);
 }
 
 const getStyles = (colors) =>

@@ -1,14 +1,14 @@
 import React, { useContext, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { IconButton, useTheme, Switch, Text, Avatar } from "react-native-paper";
 import { DrawerContext } from "../context/DrawerContext";
 import { AuthContext } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
-import { Menu } from "lucide-react-native";
+import { ArrowLeft, Menu } from "lucide-react-native";
 import { getCommonStyles } from "../constants/commonStyles";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-export default function PageHeader({ onToggleTheme, isDarkMode = false }) {
+export default function PageHeader({ onToggleTheme, isDarkMode = false, back = false }) {
   const { openDrawer } = useContext(DrawerContext);
   const { user } = useContext(AuthContext);
   const { colors } = useTheme();
@@ -42,8 +42,8 @@ export default function PageHeader({ onToggleTheme, isDarkMode = false }) {
       'profile': { title: 'Profile', subtitle: 'Your personal info' },
       'taxtds': { title: 'Tax & TDS', subtitle: 'Tax and deductions' },
       'myEarnings': { title: 'My Earnings', subtitle: 'View & download your payslips' },
-      'mainTabs': { title: 'Dashboard', subtitle: 'Your main hub' }
-
+      'mainTabs': { title: 'Dashboard', subtitle: 'Your main hub' },
+      'payslips': { title: 'Payslips', subtitle: 'View or download your payslip' }
     };
 
     return pageNames[currentRoute] || { title: 'Dashboard', subtitle: 'Dashboard' };
@@ -86,6 +86,11 @@ export default function PageHeader({ onToggleTheme, isDarkMode = false }) {
 
   return (
     <View style={commonStyles.header}>
+      {back && (
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <ArrowLeft size={24} color={colors.onSurface} />
+        </TouchableOpacity>
+      )}
       {/* Left side - User info */}
       <View style={styles.userSection}>
         <View style={styles.userInfo}>
@@ -175,5 +180,8 @@ const getStyles = (colors) =>
     },
     menuButton: {
       margin: 0
+    },
+    backButton: {
+      marginRight: 16
     }
   });

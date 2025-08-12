@@ -122,10 +122,10 @@ export default function CustomDrawer() {
 
             <Drawer.Item
               icon={({ size, color }) => <FileText size={size} color={color} />}
-              label="Documents"
+              label="Payslips"
               onPress={() => {
                 closeDrawer();
-                // Navigate to documents
+                navigation.navigate("payslips");
               }}
               style={styles.drawerItem}
               labelStyle={styles.drawerItemLabel}
