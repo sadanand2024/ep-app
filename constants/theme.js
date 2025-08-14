@@ -17,6 +17,17 @@ const lightColors = {
   surfaceVariant: "#eef2f6",
   onSurface: "#364152",
   text: "#121926",
+  success: "#4caf50",
+  successLight: "#e8f5e8",
+  successDark: "#1e3a1e",
+  successDarker: "#1e3a1e",
+  warning: "#ff9800",
+  warningLight: "#fff3e0",
+  warningDark: "#ef6c00",
+  warningDarker: "#ef6c00",
+  error: "#f44336",
+  errorLight: "#ffebee",
+  errorDark: "#c62828",
   textLight: "#697586",
   drawerColor: "#ffffff",
   borderColor: "#d2d6d9c9"
@@ -232,7 +243,7 @@ const statusConfigs = {
         background: "#3d1a1a"
       },
       "pending": {
-  primary: "#2196f3",
+        primary: "#2196f3",
         secondary: "#1a2e3d",
         text: "#64b5f6",
         icon: "#2196f3",
@@ -252,7 +263,7 @@ const statusConfigs = {
 export const getStatusConfig = (status, category = "attendance", isDarkMode = false) => {
   const theme = isDarkMode ? "dark" : "light";
   const configs = statusConfigs[theme];
-  
+
   if (!configs || !configs[category] || !configs[category][status]) {
     // Return default colors if status not found
     const defaultColors = isDarkMode ? darkColors : lightColors;
@@ -264,7 +275,7 @@ export const getStatusConfig = (status, category = "attendance", isDarkMode = fa
       background: defaultColors.surfaceVariant
     };
   }
-  
+
   return configs[category][status];
 };
 

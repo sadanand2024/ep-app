@@ -43,7 +43,8 @@ export default function PageHeader({ onToggleTheme, isDarkMode = false, back = f
       'taxtds': { title: 'Tax & TDS', subtitle: 'Tax and deductions' },
       'myEarnings': { title: 'My Earnings', subtitle: 'View & download your payslips' },
       'mainTabs': { title: 'Dashboard', subtitle: 'Your main hub' },
-      'payslips': { title: 'Payslips', subtitle: 'View or download your payslip' }
+      'payslips': { title: 'Payslips', subtitle: 'View or download your payslip' },
+      'changePassword': { title: 'Change Password', subtitle: 'Change your password' }
     };
 
     return pageNames[currentRoute] || { title: 'Dashboard', subtitle: 'Dashboard' };

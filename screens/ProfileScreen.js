@@ -109,11 +109,6 @@ export default function ProfileScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const handleChangePassword = () => {
-    // Navigate to change password screen
-    console.log("Change password pressed");
-  };
-
   // Face registration configuration
   const faceAngles = [
     { key: 'front', name: 'Front Face', description: 'Look straight at the camera' },
@@ -395,7 +390,7 @@ export default function ProfileScreen({ navigation }) {
                   })}
                 </View>
               )}
-              onPress={handleChangePassword}
+              onPress={() => navigation.navigate("changePassword")}
               style={styles.listItem}
             />
 

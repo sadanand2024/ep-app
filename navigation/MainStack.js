@@ -27,6 +27,7 @@ import {
 import { getCommonStyles } from "../constants/commonStyles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "react-native";
+import ChangePasswordScreen from "../screens/Settings/ChangePassword";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -180,6 +181,12 @@ export default function MainStack() {
           <Stack.Screen
             name="PayslipView"
             component={PayslipViewScreen}
+            options={{ headerShown: false }}
+          />
+
+          <Stack.Screen
+            name="changePassword"
+            component={ChangePasswordScreen}
             options={{ headerShown: false }}
           />
 

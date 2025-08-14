@@ -5,7 +5,10 @@ import {
     StyleSheet,
     TouchableOpacity,
     Alert,
-    Dimensions
+    Dimensions,
+    PermissionsAndroid,
+    Platform,
+    Linking
 } from 'react-native';
 import {
     Text,
@@ -18,8 +21,67 @@ import {
 import { Download, ArrowLeft, Calendar, User, Building2, CreditCard, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { getCommonStyles } from '../../constants/commonStyles';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import RNFS from 'react-native-fs';
+import Factory from '../../utils/Factory';
+import { Buffer } from 'buffer';
+import { downloadPayslip } from './index';
 
 const { width } = Dimensions.get('window');
+
+const checkStoragePermission = async () => {
+    if (Platform.OS === 'android') {
+        try {
+            if (Platform.Version >= 33) {
+                const hasImages = await PermissionsAndroid.check(
+                    PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+                );
+                const hasVideo = await PermissionsAndroid.check(
+                    PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO
+                );
+                const hasAudio = await PermissionsAndroid.check(
+                    PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO
+                );
+                
+                if (hasImages && hasVideo && hasAudio) {
+                    try {
+                        const downloadPath = RNFS.DownloadDirectoryPath;
+                        const testFile = `${downloadPath}/test_permission.tmp`;
+                        await RNFS.writeFile(testFile, 'test', 'utf8');
+                        await RNFS.unlink(testFile);
+                        return true;
+                    } catch (error) {
+                        return false;
+                    }
+                }
+                return false;
+            } else if (Platform.Version >= 30) {
+                const hasWrite = await PermissionsAndroid.check(
+                    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+                );
+                if (hasWrite) {
+                    try {
+                        const downloadPath = RNFS.DownloadDirectoryPath;
+                        const testFile = `${downloadPath}/test_permission.tmp`;
+                        await RNFS.writeFile(testFile, 'test', 'utf8');
+                        await RNFS.unlink(testFile);
+                        return true;
+                    } catch (error) {
+                        return false;
+                    }
+                }
+                return false;
+            } else {
+                const granted = await PermissionsAndroid.check(
+                    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+                );
+                return granted;
+            }
+        } catch (error) {
+            return false;
+        }
+    }
+    return true;
+};
 
 export default function PayslipView() {
     const { colors } = useTheme();
@@ -30,15 +92,135 @@ export default function PayslipView() {
 
     const { payslip } = route.params;
 
-    const handleDownloadPayslip = () => {
-        Alert.alert(
-            'Download Payslip',
-            `Downloading payslip for ${payslip.month}`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Download', onPress: () => console.log('Downloading...') }
-            ]
-        );
+    const requestStoragePermission = async () => {
+        if (Platform.OS === 'android') {
+            try {
+                if (Platform.Version >= 33) {
+                    const permissions = [
+                        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+                        PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+                        PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
+                    ];
+                    
+                    const granted = await PermissionsAndroid.requestMultiple(permissions);
+                    const allGranted = Object.values(granted).every(
+                        permission => permission === PermissionsAndroid.RESULTS.GRANTED
+                    );
+                    
+                    if (allGranted) {
+                        try {
+                            const downloadPath = RNFS.DownloadDirectoryPath;
+                            const testFile = `${downloadPath}/test_permission.tmp`;
+                            await RNFS.writeFile(testFile, 'test', 'utf8');
+                            await RNFS.unlink(testFile);
+                            return true;
+                        } catch (error) {
+                            Alert.alert(
+                                'Storage Access Required',
+                                'Please grant "Files and media" permission in your phone settings to download files.',
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    { 
+                                        text: 'Open Settings', 
+                                        onPress: async () => {
+                                            try {
+                                                await Linking.openSettings();
+                                            } catch (error) {
+                                                console.error('Error opening settings:', error);
+                                            }
+                                        }
+                                    }
+                                ]
+                            );
+                            return false;
+                        }
+                    }
+                    return false;
+                } else if (Platform.Version >= 30) {
+                    const granted = await PermissionsAndroid.request(
+                        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                        {
+                            title: 'Storage Permission',
+                            message: 'This app needs access to storage to download payslips.',
+                            buttonNeutral: 'Ask Me Later',
+                            buttonNegative: 'Cancel',
+                            buttonPositive: 'OK',
+                        }
+                    );
+                    
+                    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                        try {
+                            const downloadPath = RNFS.DownloadDirectoryPath;
+                            const testFile = `${downloadPath}/test_permission.tmp`;
+                            await RNFS.writeFile(testFile, 'test', 'utf8');
+                            await RNFS.unlink(testFile);
+                            return true;
+                        } catch (error) {
+                            Alert.alert(
+                                'Storage Access Required',
+                                'Please grant "Files and media" permission in your phone settings.',
+                                [
+                                    { text: 'Cancel', style: 'cancel' },
+                                    { 
+                                        text: 'Open Settings', 
+                                        onPress: async () => {
+                                            try {
+                                                await Linking.openSettings();
+                                            } catch (error) {
+                                                console.error('Error opening settings:', error);
+                                            }
+                                        }
+                                    }
+                                ]
+                            );
+                            return false;
+                        }
+                    }
+                    return false;
+                } else {
+                    const granted = await PermissionsAndroid.request(
+                        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+                        {
+                            title: 'Storage Permission',
+                            message: 'This app needs access to storage to download payslips.',
+                            buttonNeutral: 'Ask Me Later',
+                            buttonNegative: 'Cancel',
+                            buttonPositive: 'OK',
+                        }
+                    );
+                    return granted === PermissionsAndroid.RESULTS.GRANTED;
+                }
+            } catch (err) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const handleDownloadPayslip = async () => {
+        try {
+            // Only check permission when actually downloading, not beforehand
+            const hasPermission = await requestStoragePermission();
+            if (!hasPermission) {
+                Alert.alert('Permission Denied', 'Storage permission is required to download payslips.');
+                return;
+            }
+
+            Alert.alert(
+                'Download Payslip',
+                `Downloading payslip for ${payslip.month_year}`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                        text: 'Download', 
+                        onPress: () => downloadPayslip(payslip.employee, payslip.month, payslip.financial_year, payslip.month_year)
+                    }
+                ]
+            );
+        } catch (error) {
+            console.error('Permission request error:', error);
+            Alert.alert('Error', 'Failed to request storage permission.');
+        }
     };
 
     const formatCurrency = (amount) => {
@@ -51,7 +233,6 @@ export default function PayslipView() {
     };
 
     const formatCurrencyInWords = (amount) => {
-        // Simplified number to words conversion for display
         if (amount >= 100000) {
             const lakhs = Math.floor(amount / 100000);
             const thousands = Math.floor((amount % 100000) / 1000);
@@ -71,22 +252,21 @@ export default function PayslipView() {
     };
 
     const earningsData = [
-        { label: 'Basic Salary', amount: payslip.grossPay * 0.6 },
-        { label: 'HRA', amount: payslip.grossPay * 0.2 },
-        { label: 'Special Allowance', amount: payslip.grossPay * 0.15 },
-        { label: 'Fixed Allowance', amount: payslip.grossPay * 0.05 }
+        { label: 'Basic Salary', amount: payslip.gross_salary * 0.6 },
+        { label: 'HRA', amount: payslip.gross_salary * 0.2 },
+        { label: 'Special Allowance', amount: payslip.gross_salary * 0.15 },
+        { label: 'Fixed Allowance', amount: payslip.gross_salary * 0.05 }
     ];
 
     const deductionsData = [
-        { label: 'PF Contribution', amount: payslip.deductions * 0.5 },
-        { label: 'TDS', amount: payslip.incomeTax },
-        { label: 'Professional Tax', amount: payslip.deductions * 0.1 },
-        { label: 'NPS Contribution', amount: payslip.deductions * 0.4 }
+        { label: 'PF Contribution', amount: payslip.deduction * 0.5 },
+        { label: 'TDS', amount: payslip.tds },
+        { label: 'Professional Tax', amount: payslip.deduction * 0.1 },
+        { label: 'NPS Contribution', amount: payslip.deduction * 0.4 }
     ];
 
     return (
         <View style={commonStyles.container}>
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backButton}
@@ -106,7 +286,6 @@ export default function PayslipView() {
             </View>
 
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                {/* Employee Details Card */}
                 <Card style={styles.employeeCard}>
                     <Card.Content style={styles.cardContent}>
                         <View style={styles.employeeHeader}>
@@ -145,19 +324,17 @@ export default function PayslipView() {
                     </Card.Content>
                 </Card>
 
-                {/* Pay Period Card */}
                 <Card style={styles.card}>
                     <Card.Content style={styles.cardContent}>
                         <View style={{ ...styles.sectionHeader, marginBottom: 0 }}>
                             <Calendar size={20} color={colors.primary} />
                             <Text variant="titleMedium" style={styles.sectionTitle}>
-                                Pay Period: {payslip.payPeriod}
+                                Pay Period: {payslip.month_year}
                             </Text>
                         </View>
                     </Card.Content>
                 </Card>
 
-                {/* Earnings Card */}
                 <Card style={styles.card}>
                     <Card.Content style={styles.cardContent}>
                         <View style={styles.sectionHeader}>
@@ -180,13 +357,12 @@ export default function PayslipView() {
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Total (Gross Salary)</Text>
                             <Text style={[styles.totalAmount, { color: colors.primary }]}>
-                                {formatCurrency(payslip.grossPay)}
+                                {formatCurrency(payslip.gross_salary)}
                             </Text>
                         </View>
                     </Card.Content>
                 </Card>
 
-                {/* Deductions Card */}
                 <Card style={styles.card}>
                     <Card.Content style={styles.cardContent}>
                         <View style={styles.sectionHeader}>
@@ -209,33 +385,31 @@ export default function PayslipView() {
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Total Deductions</Text>
                             <Text style={[styles.totalAmount, { color: colors.error }]}>
-                                {formatCurrency(payslip.deductions + payslip.incomeTax)}
+                                {formatCurrency(payslip.deduction + payslip.tds)}
                             </Text>
                         </View>
                     </Card.Content>
                 </Card>
 
-                {/* Net Pay Card */}
                 <Card style={styles.netPayCard}>
                     <Card.Content style={styles.netPayCardContent}>
                         <View style={styles.netPayHeader}>
                             <CreditCard size={24} color={colors.surface} />
                             <Text variant="titleLarge" style={styles.netPayTitle}>
-                                Net Pay for {payslip.month}
+                                Net Pay for {payslip.month_year}
                             </Text>
                         </View>
 
                         <Text variant="titleLarge" style={styles.netPayAmount}>
-                            {formatCurrency(payslip.netPay)}
+                            {formatCurrency(payslip.net_salary)}
                         </Text>
 
                         <Text style={styles.netPayWords}>
-                            {formatCurrencyInWords(payslip.netPay)}
+                            {formatCurrencyInWords(payslip.net_salary)}
                         </Text>
                     </Card.Content>
                 </Card>
 
-                {/* Download Section */}
                 <View style={styles.downloadSection}>
                     <Button
                         mode="contained"
